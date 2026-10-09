@@ -1,0 +1,127 @@
+/* Keep the valuation page aligned with the shared homepage type system. */
+.valuation-page,
+.valuation-page button,
+.valuation-page p,
+.valuation-page span {
+  font-family: var(--font-sans);
+}
+
+.valuation-page .valuation-intro p,
+.valuation-page .valuation-module-header p,
+.valuation-page .valuation-toolbar > span,
+.valuation-page .valuation-card strong,
+.valuation-page .price-trend-grid text,
+.valuation-page .price-trend-axis text,
+.valuation-page .price-trend-tooltip,
+.valuation-page .valuation-formula b {
+  font-family: var(--font-mono);
+}
+
+.valuation-page .valuation-intro h1,
+.valuation-page .valuation-module-header h2 {
+  font-family: var(--font-display);
+}
+
+.valuation-page .valuation-module-header {
+  grid-template-areas:
+    "eyebrow source"
+    "title source";
+}
+
+.valuation-page .valuation-module-header > p { grid-area: eyebrow; }
+.valuation-page .valuation-module-header > h2 { grid-area: title; }
+.valuation-page .valuation-module-header > span {
+  grid-area: source;
+  font-family: var(--font-sans);
+}
+
+.valuation-page .prl-mark {
+  display: inline-grid;
+  width: 3.2rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(168, 63, 98, .42);
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 24%, rgba(255, 255, 255, .96), rgba(250, 224, 235, .65) 52%, rgba(235, 194, 212, .32));
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, .34), 0 6px 20px rgba(168, 63, 98, .08);
+  color: var(--rose);
+  font-family: var(--font-mono);
+  font-size: .7em;
+  font-weight: 650;
+  letter-spacing: -.08em;
+}
+
+.valuation-page .price-chart-controls,
+.valuation-page .chart-metric-select {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.valuation-page .chart-metric-select > span {
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.valuation-page .chart-metric-select select {
+  max-width: 16.25rem;
+  border: 1px solid rgba(31, 39, 42, .18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .56);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: .77rem;
+  outline: none;
+  padding: .48rem 1.9rem .48rem .7rem;
+}
+
+.valuation-page .chart-metric-select select:focus-visible {
+  border-color: var(--rose);
+  box-shadow: 0 0 0 3px rgba(168, 63, 98, .13);
+}
+
+.valuation-page .valuation-toolbar > span {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -.015em;
+}
+
+.valuation-page .price-trend-tooltip {
+  min-width: 10.5rem;
+  padding: .78rem .9rem;
+  font-size: .84rem;
+  gap: .34rem;
+  line-height: 1.45;
+}
+
+.valuation-page .price-trend-tooltip b {
+  font-size: .76rem;
+}
+
+@media (max-width: 800px) {
+  .valuation-page .valuation-module-header {
+    grid-template-areas:
+      "eyebrow"
+      "title"
+      "source";
+  }
+
+  .valuation-page .valuation-toolbar,
+  .valuation-page .price-chart-controls {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .valuation-page .chart-metric-select {
+    flex: 1 1 100%;
+  }
+
+  .valuation-page .chart-metric-select select {
+    flex: 1;
+    max-width: none;
+  }
+}
