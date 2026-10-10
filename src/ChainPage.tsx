@@ -63,7 +63,7 @@ export default function ChainPage() {
   const recentAge = coinAge?.data.bands.map((band) => ({ name: band.name, value: band.values.at(-1) ?? 0 })) ?? [];
 
   return <main className="site-shell chain-page">
-    <header className="topbar"><a className="brand" href="/">Pearl <span>中文社区</span></a><nav aria-label="数据导航"><a href="/">总览</a><a href="/chain" aria-current="page">链上</a><a href="/valuation">数据</a></nav></header>
+    <header className="topbar"><a className="brand" href="/">Pearl <span>中文社区</span></a><nav aria-label="主导航"><a href="/overview">数据总览</a><a href="/chain" aria-current="page">链上</a><a href="/valuation">数据</a><a href="/archive">项目档案</a></nav></header>
     <div className="chain-wrap">
       <ChainModule eyebrow="00 / NETWORK" title="网络概览" source={network?.sourceKind === "live" ? "公开链上快照" : "最近可用样本"} notice={network?.notice}>
         <div className="chain-overview-grid">{networkCards.length ? networkCards.map(([label, value]) => <article key={label}><span>{label}</span><b>{value}</b></article>) : <p className="chain-loading">正在读取网络快照</p>}</div>

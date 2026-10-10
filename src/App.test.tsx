@@ -10,8 +10,25 @@ afterEach(() => {
   window.history.replaceState({}, "", "/");
 });
 
-describe("Pearl data homepage", () => {
-  it("keeps the home chrome focused on navigation and data", async () => {
+describe("Pearl community pages", () => {
+  it("renders the Pearl introduction archive at the root path", () => {
+    window.history.replaceState({}, "", "/");
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Pearl 是什么" })).not.toBeNull();
+    expect(screen.queryByText("Lighter · PRL 永续")).toBeNull();
+    expect(screen.getByRole("link", { name: "数据总览" }).getAttribute("href")).toBe("/overview");
+  });
+
+  it("keeps existing /#overview bookmarks pointed at the real-time dashboard", () => {
+    window.history.replaceState({}, "", "/#overview");
+    render(<App />);
+
+    expect(screen.getByText("Lighter · PRL 永续")).not.toBeNull();
+  });
+
+  it("keeps the data overview chrome focused on navigation and data", async () => {
+    window.history.replaceState({}, "", "/overview");
     render(<App />);
 
     expect(screen.getByRole("link", { name: /Pearl 中文社区/i })).not.toBeNull();
@@ -31,6 +48,7 @@ describe("Pearl data homepage", () => {
   });
 
   it("reserves data cards for the public overview, on-chain, valuation, and AI series", () => {
+    window.history.replaceState({}, "", "/overview");
     render(<App />);
 
     expect(screen.getAllByText("全网全成本").length).toBeGreaterThan(0);
@@ -40,6 +58,7 @@ describe("Pearl data homepage", () => {
   });
 
   it("places the market trend inside the overview dashboard", () => {
+    window.history.replaceState({}, "", "/overview");
     render(<App />);
 
     expect(screen.getByTestId("overview-market-panel")).not.toBeNull();
@@ -48,6 +67,7 @@ describe("Pearl data homepage", () => {
   });
 
   it("provides K-line zoom controls and an accessible chart interaction surface", () => {
+    window.history.replaceState({}, "", "/overview");
     render(<App />);
 
     expect(screen.getByRole("button", { name: "放大图表" })).not.toBeNull();

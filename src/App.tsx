@@ -5,10 +5,15 @@ import type { NetworkSnapshot } from "./data/schema";
 import { formatBlockDeviation, formatHashrate, formatUsd } from "./lib/format";
 import ChainPage from "./ChainPage";
 import ValuationPage from "./ValuationPage";
+import ArchiveHomePage from "./ArchiveHomePage";
 
 type Range = "7D" | "30D";
 const liveMetricIds = ["cost_allin", "txs", "onchain_volume", "funded_addresses", "top10_share", "fdv_vs_btc", "prl_btc", "marginal_cost", "crossover"] as const;
 type LiveMetricId = typeof liveMetricIds[number];
+
+function currentRoute() {
+  return window.location.pathname === "/" && window.location.hash === "#overview" ? "/overview" : window.location.pathname;
+}
 
 function MetricCard({ label, value, detail, kind = "live", tone = "ink" }: {
   label: string; value: string; detail: string; kind?: "live" | "fallback"; tone?: "ink" | "rose" | "blue";
@@ -69,7 +74,7 @@ function formatMetricPercent(value: number | undefined, digits = 2) {
   return value === undefined ? "读取中" : `${value.toFixed(digits)}%`;
 }
 
-function HomePage() {
+function OverviewPage() {
   const [network, setNetwork] = useState<DataResult<NetworkSnapshot> | null>(null);
   const [price, setPrice] = useState<DataResult<MetricSeries> | null>(null);
   const [candleCache, setCandleCache] = useState<Partial<Record<Range, DataResult<CandleSeries>>>>({});
@@ -118,7 +123,7 @@ function HomePage() {
   return <main className="site-shell">
     <header className="topbar">
       <a className="brand" href="/">Pearl <span>中文社区</span></a>
-      <nav aria-label="数据导航"><a href="#overview">总览</a><a href="/chain">链上</a><a href="/valuation">数据</a></nav>
+      <nav aria-label="主导航"><a href="/overview" aria-current="page">数据总览</a><a href="/chain">链上</a><a href="/valuation">数据</a><a href="/archive">项目档案</a></nav>
     </header>
 
     <section className="hero" id="overview">
@@ -158,14 +163,21 @@ function HomePage() {
 }
 
 function App() {
-  const [pathname, setPathname] = useState(window.location.pathname);
+  const [pathname, setPathname] = useState(currentRoute);
   useEffect(() => startDataRefresh(), []);
   useEffect(() => {
-    const syncPathname = () => setPathname(window.location.pathname);
+    const syncPathname = () => setPathname(currentRoute());
     window.addEventListener("popstate", syncPathname);
-    return () => window.removeEventListener("popstate", syncPathname);
+    window.addEventListener("hashchange", syncPathname);
+    return () => {
+      window.removeEventListener("popstate", syncPathname);
+      window.removeEventListener("hashchange", syncPathname);
+    };
   }, []);
-  return pathname === "/chain" ? <ChainPage /> : pathname === "/valuation" ? <ValuationPage /> : <HomePage />;
+  if (pathname === "/overview") return <OverviewPage />;
+  if (pathname === "/chain") return <ChainPage />;
+  if (pathname === "/valuation") return <ValuationPage />;
+  return <ArchiveHomePage />;
 }
 
 export default App;

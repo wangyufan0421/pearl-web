@@ -1,6 +1,14 @@
-# Pearl 中文社区 · 数据
+# Pearl 中文社区
 
-面向 Pearl 中文社区的数据策展站。首页提供网络、PRL 数据与 AI 摘要；`/chain` 提供完整的链上数据子页，`/valuation` 提供完整的 PRL 数据汇总子页。
+面向 Pearl 中文社区的双层策展站：根路径是「Pearl 是什么」项目档案导读；`/overview` 提供实时网络与市场数据，`/chain` 提供完整链上实况，`/valuation` 提供 PRL 数据汇总。
+
+## 页面入口
+
+- `/`：Pearl 是什么——项目档案的第一份导读；
+- `/overview`：实时数据总览，含 Lighter K 线、网络、链上、PRL 数据与 AI 交叉摘要；
+- `/chain`：链上实况；
+- `/valuation`：PRL 数据汇总；
+- `/archive`：当前显示项目档案入口，后续扩展其余专题。
 
 ## 本地运行
 
@@ -37,7 +45,7 @@ Lighter 的 K 线接口允许浏览器跨域读取，因此价格图不经 prlst
 
 ## 加载与刷新
 
-页面打开时会并行预取公开数据，并在浏览器内存中建立共享缓存；在首页、链上实况和 PRL 数据汇总之间切换时，会复用同一份结果，避免重复请求。
+页面打开时会并行预取公开数据，并在浏览器内存中建立共享缓存；在数据总览、链上实况和 PRL 数据汇总之间切换时，会复用同一份结果，避免重复请求。
 
 - **快速数据：30 秒** — 网络概览、指标序列与 Lighter K 线。`prlstats` 的网络及指标接口响应头标注了 30 秒缓存周期。
 - **中速数据：5 分钟** — 矿池、活跃度和交易尺寸。
@@ -55,7 +63,8 @@ Lighter 的 K 线接口允许浏览器跨域读取，因此价格图不经 prlst
 
 ## 主要文件
 
-- `src/App.tsx`：长页信息架构与交互；
+- `src/ArchiveHomePage.tsx`：根路径的 Pearl 项目档案导读；
+- `src/App.tsx`：数据总览路由、实时数据看板与交互；
 - `src/ChainPage.tsx`：`/chain` 链上数据子页；
 - `src/ValuationPage.tsx`：`/valuation` PRL 数据汇总子页；
 - `src/data/chain.ts`：Pools、Activity、TX Size 与 Holders 的公开接口适配；
@@ -63,4 +72,5 @@ Lighter 的 K 线接口允许浏览器跨域读取，因此价格图不经 prlst
 - `src/data/runtime.ts`：跨页面请求缓存、启动预取与刷新调度；
 - `src/data/schema.ts`：数据结构校验；
 - `src/styles/`：珍珠白视觉系统；
+- `src/styles/archive.css`：项目档案首页布局；
 - `public/assets/pearl-iridescent-background.png`：为本项目生成的低饱和珠光背景资产。

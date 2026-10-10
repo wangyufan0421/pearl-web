@@ -113,7 +113,7 @@ export default function ValuationPage() {
   const issuanceValue = network === null || price === undefined ? undefined : network.data.emissionPrlDay * price;
 
   return <main className="site-shell valuation-page">
-    <header className="topbar"><a className="brand" href="/">Pearl <span>中文社区</span></a><nav aria-label="数据导航"><a href="/">总览</a><a href="/chain">链上</a><a href="/valuation" aria-current="page">数据</a></nav></header>
+    <header className="topbar"><a className="brand" href="/">Pearl <span>中文社区</span></a><nav aria-label="主导航"><a href="/overview">数据总览</a><a href="/chain">链上</a><a href="/valuation" aria-current="page">数据</a><a href="/archive">项目档案</a></nav></header>
     <div className="valuation-wrap">
       <header className="valuation-intro"><p>PEARL / DATA</p><h1>PRL 数据汇总</h1><span>价格、供应、流动性与相对尺度，共同构成完整的数据语境。</span></header>
 
