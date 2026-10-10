@@ -4,6 +4,7 @@ import { type DataResult } from "./data/prlstats";
 import { loadActivity, loadCoinAge, loadHolders, loadMined, loadNetworkSnapshot, loadPoolHistory, loadPools, loadTxSizes, subscribeToDataUpdates } from "./data/runtime";
 import type { NetworkSnapshot } from "./data/schema";
 import { formatHashrate } from "./lib/format";
+import { ArchiveNavigation } from "./ArchiveNavigation";
 
 function formatNumber(value: number, digits = 0) { return new Intl.NumberFormat("zh-CN", { maximumFractionDigits: digits }).format(value); }
 function formatPrl(value: number) { return value >= 1e9 ? `${(value / 1e9).toFixed(2)}B` : value >= 1e6 ? `${(value / 1e6).toFixed(2)}M` : value >= 1e3 ? `${(value / 1e3).toFixed(1)}k` : value.toFixed(0); }
@@ -63,7 +64,7 @@ export default function ChainPage() {
   const recentAge = coinAge?.data.bands.map((band) => ({ name: band.name, value: band.values.at(-1) ?? 0 })) ?? [];
 
   return <main className="site-shell chain-page">
-    <header className="topbar"><a className="brand" href="/">Pearl <span>中文社区</span></a><nav aria-label="主导航"><a href="/overview">数据总览</a><a href="/chain" aria-current="page">链上</a><a href="/valuation">数据</a><a href="/archive">项目档案</a></nav></header>
+    <header className="topbar"><a className="brand" href="/">Pearl <span>中文社区</span></a><nav aria-label="主导航"><a href="/overview">数据概览</a><a href="/chain" aria-current="page">链上数据</a><a href="/valuation">数据汇总</a><ArchiveNavigation /></nav></header>
     <div className="chain-wrap">
       <ChainModule eyebrow="00 / NETWORK" title="网络概览" source={network?.sourceKind === "live" ? "公开链上快照" : "最近可用样本"} notice={network?.notice}>
         <div className="chain-overview-grid">{networkCards.length ? networkCards.map(([label, value]) => <article key={label}><span>{label}</span><b>{value}</b></article>) : <p className="chain-loading">正在读取网络快照</p>}</div>

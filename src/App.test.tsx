@@ -17,7 +17,7 @@ describe("Pearl community pages", () => {
 
     expect(screen.getByRole("heading", { name: "Pearl 是什么" })).not.toBeNull();
     expect(screen.queryByText("Lighter · PRL 永续")).toBeNull();
-    expect(screen.getByRole("link", { name: "数据总览" }).getAttribute("href")).toBe("/overview");
+    expect(screen.getByRole("link", { name: "数据概览" }).getAttribute("href")).toBe("/overview");
   });
 
   it("keeps existing /#overview bookmarks pointed at the real-time dashboard", () => {
@@ -127,6 +127,34 @@ describe("Pearl community pages", () => {
     expect(screen.queryByText("Lighter · PRL 永续")).toBeNull();
   });
 
+  it("renders the Pearl core mechanism archive as its own page", () => {
+    window.history.replaceState({}, "", "/archive/core-mechanism");
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "核心机制" })).not.toBeNull();
+  });
+
+  it("renders the Pearl whitepaper archive as its own page", () => {
+    window.history.replaceState({}, "", "/archive/whitepaper");
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Pearl 白皮书" })).not.toBeNull();
+  });
+
+  it("renders the Pearl article archive as its own page", () => {
+    window.history.replaceState({}, "", "/archive/articles");
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Pearl相关文章" })).not.toBeNull();
+  });
+
+  it("renders the Pearl people archive as its own page", () => {
+    window.history.replaceState({}, "", "/archive/people");
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Pearl人物与关系" })).not.toBeNull();
+  });
+
   it("shows the exact date and sats value for a hovered selected chart point", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -138,8 +166,9 @@ describe("Pearl community pages", () => {
     window.history.replaceState({}, "", "/valuation");
     render(<App />);
 
-    const point = await screen.findByRole("button", { name: /2025\/10\/11.*1,370 sats/ });
-    fireEvent.mouseEnter(point);
+    const chart = await screen.findByTestId("price-trend-interaction");
+    Object.defineProperty(chart, "getBoundingClientRect", { value: () => ({ left: 0, width: 840 }) });
+    fireEvent.mouseMove(chart, { clientX: 630 });
 
     expect(screen.getByTestId("price-trend-tooltip").textContent).toContain("1,370 sats");
   });
@@ -169,7 +198,11 @@ describe("Pearl community pages", () => {
     const selector = await screen.findByLabelText("图表指标");
     fireEvent.change(selector, { target: { value: "fdv_vs_btc" } });
 
-    expect(await screen.findByRole("button", { name: /2025\/10\/11.*0\.164%/ })).not.toBeNull();
+    const chart = await screen.findByTestId("price-trend-interaction");
+    Object.defineProperty(chart, "getBoundingClientRect", { value: () => ({ left: 0, width: 840 }) });
+    fireEvent.mouseMove(chart, { clientX: 630 });
+
+    expect((await screen.findByTestId("price-trend-tooltip")).textContent).toContain("0.164%");
   });
 
   it("presents the PRL chart summary without a standalone PRL price option", () => {
@@ -177,7 +210,7 @@ describe("Pearl community pages", () => {
     render(<App />);
 
     expect(screen.getByRole("heading", { name: "PRL 数据图表" })).not.toBeNull();
-    expect(screen.getByRole("link", { name: "数据" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "数据汇总" })).not.toBeNull();
     expect(screen.getByRole("option", { name: "PRL挖矿成本" })).not.toBeNull();
     expect(screen.queryByRole("option", { name: "PRL price" })).toBeNull();
   });

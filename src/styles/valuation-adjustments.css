@@ -90,6 +90,28 @@
   letter-spacing: -.015em;
 }
 
+.valuation-page .valuation-toolbar > span b {
+  margin-left: .48rem;
+  color: var(--rose);
+  font-variant-numeric: tabular-nums;
+}
+
+.valuation-page .price-trend svg { cursor: crosshair; }
+
+.valuation-page .price-trend-crosshair line {
+  stroke: rgba(168, 63, 98, .45);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 2 3;
+}
+
+.valuation-page .price-trend-crosshair circle {
+  fill: var(--rose);
+  stroke: rgba(255, 254, 250, .98);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
 .valuation-page .price-trend-tooltip {
   min-width: 10.5rem;
   padding: .78rem .9rem;

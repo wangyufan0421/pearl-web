@@ -6,6 +6,11 @@ import { formatBlockDeviation, formatHashrate, formatUsd } from "./lib/format";
 import ChainPage from "./ChainPage";
 import ValuationPage from "./ValuationPage";
 import ArchiveHomePage from "./ArchiveHomePage";
+import { ArchiveNavigation } from "./ArchiveNavigation";
+import CoreMechanismPage from "./CoreMechanismPage";
+import WhitepaperPage from "./WhitepaperPage";
+import ArticlesPage from "./ArticlesPage";
+import PeoplePage from "./PeoplePage";
 
 type Range = "7D" | "30D";
 const liveMetricIds = ["cost_allin", "txs", "onchain_volume", "funded_addresses", "top10_share", "fdv_vs_btc", "prl_btc", "marginal_cost", "crossover"] as const;
@@ -123,7 +128,7 @@ function OverviewPage() {
   return <main className="site-shell">
     <header className="topbar">
       <a className="brand" href="/">Pearl <span>中文社区</span></a>
-      <nav aria-label="主导航"><a href="/overview" aria-current="page">数据总览</a><a href="/chain">链上</a><a href="/valuation">数据</a><a href="/archive">项目档案</a></nav>
+      <nav aria-label="主导航"><a href="/overview" aria-current="page">数据概览</a><a href="/chain">链上数据</a><a href="/valuation">数据汇总</a><ArchiveNavigation /></nav>
     </header>
 
     <section className="hero" id="overview">
@@ -177,6 +182,10 @@ function App() {
   if (pathname === "/overview") return <OverviewPage />;
   if (pathname === "/chain") return <ChainPage />;
   if (pathname === "/valuation") return <ValuationPage />;
+  if (pathname === "/archive/core-mechanism") return <CoreMechanismPage />;
+  if (pathname === "/archive/whitepaper") return <WhitepaperPage />;
+  if (pathname === "/archive/articles") return <ArticlesPage />;
+  if (pathname === "/archive/people") return <PeoplePage />;
   return <ArchiveHomePage />;
 }
 

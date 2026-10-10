@@ -9,6 +9,10 @@
 - `/chain`：链上实况；
 - `/valuation`：PRL 数据汇总；
 - `/archive`：当前显示项目档案入口，后续扩展其余专题。
+- `/archive/core-mechanism`：Pearl 核心机制研究档案。
+- `/archive/whitepaper`：原始 Pearl 白皮书的站内阅读页。
+- `/archive/articles`：Pearl 相关文章阅读卡（学术/协议原文 + 英文社区长文/thread）。
+- `/archive/people`：人物、研究关联与合作线索的证据地图。
 
 ## 本地运行
 
@@ -64,6 +68,10 @@ Lighter 的 K 线接口允许浏览器跨域读取，因此价格图不经 prlst
 ## 主要文件
 
 - `src/ArchiveHomePage.tsx`：根路径的 Pearl 项目档案导读；
+- `src/CoreMechanismPage.tsx`：Pearl 核心机制专题档案；
+- `src/WhitepaperPage.tsx`：嵌入原始 PDF 的 Pearl 白皮书阅读页；
+- `src/ArticlesPage.tsx`：平铺展示的 Pearl 相关研究与英文社区长文阅读卡页。
+- `src/PeoplePage.tsx`：人物与关系专题的事实、能力地图和推测隔离页；
 - `src/App.tsx`：数据总览路由、实时数据看板与交互；
 - `src/ChainPage.tsx`：`/chain` 链上数据子页；
 - `src/ValuationPage.tsx`：`/valuation` PRL 数据汇总子页；

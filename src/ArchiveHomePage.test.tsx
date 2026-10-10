@@ -9,7 +9,7 @@ describe("ArchiveHomePage", () => {
     render(<ArchiveHomePage />);
 
     expect(screen.getByRole("heading", { name: "Pearl 是什么" })).not.toBeNull();
-    expect(screen.getByText(/PoW 区块链/)).not.toBeNull();
+    expect(screen.getByText(/PoUW 区块链/)).not.toBeNull();
     expect(screen.getByRole("link", { name: /查看数据总览/ }).getAttribute("href")).toBe("/overview");
   });
 

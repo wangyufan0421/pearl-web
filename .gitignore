@@ -6,3 +6,14 @@ output/
 tmp-*.html
 .env
 .env.*
+rendered_pearl_int_cn*/
+Pearl_INT_Whitepaper_figures/
+*.docx
+int-whitepaper-source.html
+Pearl_Whitepaper_source.pdf
+build_pearl_int_cn.py
+_patch_*.py
+_verify_*.py
+_inspect_*.py
+tmp-articles-b64.txt
+_check_*.py

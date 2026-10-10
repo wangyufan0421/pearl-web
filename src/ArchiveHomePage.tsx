@@ -1,3 +1,5 @@
+import { ArchiveNavigation } from "./ArchiveNavigation";
+
 const topics = [
   ["01", "Duplex Work", "一份 AI 计算负载，如何服务两种目标？", "#duplex-work"],
   ["02", "挖矿如何嵌入计算", "应用结果与出块证明，在哪一步分开？", "#mining-flow"],
@@ -14,7 +16,7 @@ export default function ArchiveHomePage() {
     <header className="topbar">
       <a className="brand" href="/">Pearl <span>中文社区</span></a>
       <nav aria-label="主导航">
-        <a href="/overview">数据总览</a><a href="/chain">链上</a><a href="/valuation">数据</a><a href="/archive">项目档案</a>
+        <a href="/overview">数据概览</a><a href="/chain">链上数据</a><a href="/valuation">数据汇总</a><ArchiveNavigation current />
       </nav>
     </header>
 
@@ -22,7 +24,7 @@ export default function ArchiveHomePage() {
       <div className="archive-hero-copy">
         <p className="eyebrow">01 / START HERE</p>
         <h1 id="archive-title">Pearl 是什么</h1>
-        <p className="archive-definition">Pearl 是一条 <strong>PoW 区块链</strong>，旨在让 AI 计算负载参与挖取原生代币 PRL。</p>
+        <p className="archive-definition">Pearl 是一条 <strong>PoUW 区块链</strong>，旨在让 AI 计算负载参与挖取原生代币 PRL。</p>
         <p className="archive-intro">它想让同一套算力服务两种目的：交付实际的 AI 推理工作，同时在符合条件时参与区块链出块。</p>
         <div className="archive-actions"><a href="#introduction">开始阅读 <span>↓</span></a><a href="/overview">查看数据总览 <span>→</span></a></div>
       </div>
@@ -47,7 +49,7 @@ export default function ArchiveHomePage() {
         <p className="eyebrow">01 / DUPLEX WORK</p>
         <h2>一份负载，两种产出</h2>
         <div className="archive-prose">
-          <p>传统 AI 推理会消耗 GPU 擅长的矩阵乘法（GEMM）运算；传统 PoW 则依靠矿工竞争出块。Pearl 提出的 Duplex Work（双工工作）尝试把两者放入同一个计算过程。</p>
+          <p>传统 AI 推理会消耗 GPU 擅长的矩阵乘法（GEMM）运算；传统 PoUW 则依靠矿工竞争出块。Pearl 提出的 Duplex Work（双工工作）尝试把两者放入同一个计算过程。</p>
         </div>
         <div className="archive-split-card-grid">
           <article><span>对客户</span><b>提交 AI 输入</b><p>获得模型推理的应用结果。</p></article>
@@ -85,7 +87,7 @@ export default function ArchiveHomePage() {
         <p className="eyebrow">04 / MILESTONES</p>
         <h2>两个方向，两套里程碑</h2>
         <div className="archive-milestone-grid">
-          <article><span>阶段一</span><b>算力 → PRL</b><p>矿工贡献 AI 算力，并在 PoW 机制下尝试获得 PRL 奖励。这是基础的 L1 链上机制。</p></article>
+          <article><span>阶段一</span><b>算力 → PRL</b><p>矿工贡献 AI 算力，并在 PoUW 机制下尝试获得 PRL 奖励。这是基础的 L1 链上机制。</p></article>
           <article><span>阶段二</span><b>PRL → 算力</b><p>用户以 PRL 支付并购买去中心化网络中的 AI 推理算力，形成反向消费与结算闭环。</p></article>
         </div>
         <div className="archive-prose">
