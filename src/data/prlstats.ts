@@ -1,5 +1,6 @@
 import { fallbackNetworkSnapshot } from "./fixtures";
 import { parseNetworkSnapshot, type NetworkSnapshot } from "./schema";
+import { snapshotMetadata } from "./snapshotMetadata";
 
 export type SourceKind = "live" | "fallback";
 
@@ -8,6 +9,7 @@ export type DataResult<T> = {
   sourceKind: SourceKind;
   fetchedAt: Date;
   notice?: string;
+  stale?: boolean;
 };
 
 type Fetcher = typeof fetch;
@@ -46,7 +48,7 @@ export async function getNetworkSnapshot(fetcher: Fetcher = fetch): Promise<Data
     return {
       data: parseNetworkSnapshot(await response.json()),
       sourceKind: "live",
-      fetchedAt: new Date(),
+      ...snapshotMetadata(response),
     };
   } catch {
     return {
@@ -86,7 +88,7 @@ export async function getMetricSeries(metric: string, fetcher: Fetcher = fetch):
         points,
       },
       sourceKind: "live",
-      fetchedAt: new Date(),
+      ...snapshotMetadata(response),
     };
   } catch {
     return {
@@ -103,10 +105,7 @@ export async function getMetricSeries(metric: string, fetcher: Fetcher = fetch):
 export async function getLighterCandles(range: CandleRange, fetcher: Fetcher = fetch): Promise<DataResult<CandleSeries>> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 10_000);
-  const endTimestamp = Math.floor(Date.now() / 1000);
-  const hours = range === "7D" ? 7 * 24 : 30 * 24;
-  const startTimestamp = endTimestamp - hours * 60 * 60;
-  const url = `https://mainnet.zklighter.elliot.ai/api/v1/candles?market_id=4097&resolution=1h&start_timestamp=${startTimestamp}&end_timestamp=${endTimestamp}&count_back=${hours}`;
+  const url = `/api/market/candles?range=${range}`;
 
   try {
     const response = await fetcher(url, { signal: controller.signal });
@@ -124,7 +123,7 @@ export async function getLighterCandles(range: CandleRange, fetcher: Fetcher = f
     return {
       data: { source: "Lighter", symbol: "PRL-PERP", resolution: "1h", candles },
       sourceKind: "live",
-      fetchedAt: new Date(),
+      ...snapshotMetadata(response),
     };
   } catch {
     return {

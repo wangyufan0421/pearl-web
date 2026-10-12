@@ -1,181 +1,134 @@
-export type SourceBlockKind = "heading" | "quote" | "paragraph";
+import type { FetchedSource, SourceBlock } from "./discussions/types.js";
 
-export type SourceBlock = {
-  id: string;
-  kind: SourceBlockKind;
-  text: string;
-};
+type RecordValue = Record<string, unknown>;
 
-export type DiscussionSource = {
-  sourceId: string;
-  href: string;
-  fallbackAuthor: string;
-  fallbackHandle: string;
-  fallbackAvatar: string;
-};
+export type NormalizedDiscussionSource = Pick<FetchedSource, "xStatusId" | "url">;
 
-export type DiscussionPost = {
-  sourceId: string;
-  href: string;
-  author: string;
-  handle: string;
-  avatar: string;
-  publishedAt?: string;
-  blocks: SourceBlock[];
-};
+export type FallbackDiscussionMetadata = Pick<
+  FetchedSource,
+  "author" | "handle" | "avatarUrl" | "publishedAt"
+>;
 
-export type DiscussionPayload = {
-  discussion: "wtf-is-pearl";
-  fetchedAt: string;
-  sources: DiscussionPost[];
-};
+export type DiscussionClock = () => Date | string;
 
-export const DISCUSSION_SOURCES: DiscussionSource[] = [
-  {
-    sourceId: "2108519545514410023",
-    href: "https://x.com/blocmates/status/2108519545514410023?s=20",
-    fallbackAuthor: "blocmates.",
-    fallbackHandle: "@blocmates",
-    fallbackAvatar: "https://pbs.twimg.com/profile_images/2016157466698944513/a7EkPcJa_normal.jpg",
-  },
-  {
-    sourceId: "2108528311735607793",
-    href: "https://x.com/theoristalgo/status/2108528311735607793",
-    fallbackAuthor: "theoristalgo ™️ | ⓝ",
-    fallbackHandle: "@theoristalgo",
-    fallbackAvatar: "https://pbs.twimg.com/profile_images/2101042430699036672/LI50ARk1_normal.jpg",
-  },
-  {
-    sourceId: "2108568857317118362",
-    href: "https://x.com/tokugawasuprema/status/2108568857317118362",
-    fallbackAuthor: "Tokugawa The Gem General",
-    fallbackHandle: "@tokugawasuprema",
-    fallbackAvatar: "https://pbs.twimg.com/profile_images/2048184515663699968/uHZMFwRb_normal.jpg",
-  },
-  {
-    sourceId: "2108579196268077447",
-    href: "https://x.com/tulipking/status/2108579196268077447?s=20",
-    fallbackAuthor: "Tulip King 🌷",
-    fallbackHandle: "@tulipking",
-    fallbackAvatar: "https://pbs.twimg.com/profile_images/2062216238223265793/WY21HCO0_normal.jpg",
-  },
-  {
-    sourceId: "2108928836780065031",
-    href: "https://x.com/KiwiCryptoBig/status/2108928836780065031",
-    fallbackAuthor: "Kiwibig.eth",
-    fallbackHandle: "@KiwiCryptoBig",
-    fallbackAvatar: "https://pbs.twimg.com/profile_images/1721392814045667328/9uORlqSW_normal.jpg",
-  },
-];
+const isRecord = (value: unknown): value is RecordValue => typeof value === "object" && value !== null;
 
-type UnknownRecord = Record<string, unknown>;
-
-function isRecord(value: unknown): value is UnknownRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function readString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function asRecord(value: unknown): UnknownRecord | undefined {
-  return isRecord(value) ? value : undefined;
+function readPath(value: unknown, path: string[]): unknown {
+  let current: unknown = value;
+  for (const key of path) {
+    if (!isRecord(current)) return undefined;
+    current = current[key];
+  }
+  return current;
 }
 
-function readPath(root: UnknownRecord, path: string[]): unknown {
-  return path.reduce<unknown>((value, key) => asRecord(value)?.[key], root);
+function statusIdOf(tweet: RecordValue): string | null {
+  return readString(tweet.rest_id) ?? readString(tweet.id_str);
 }
 
-function findRootTweet(value: unknown, sourceId: string, visited = new Set<object>()): UnknownRecord | undefined {
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = findRootTweet(item, sourceId, visited);
-      if (found) return found;
+function findRootTweet(value: unknown, statusId: string): RecordValue | null {
+  const visited = new Set<object>();
+
+  const visit = (candidate: unknown): RecordValue | null => {
+    if (!isRecord(candidate) || visited.has(candidate)) return null;
+    visited.add(candidate);
+
+    if (statusIdOf(candidate) === statusId) return candidate;
+
+    for (const [key, child] of Object.entries(candidate)) {
+      if (key.toLowerCase().includes("quote")) continue;
+
+      if (Array.isArray(child)) {
+        for (const entry of child) {
+          const found = visit(entry);
+          if (found) return found;
+        }
+      } else {
+        const found = visit(child);
+        if (found) return found;
+      }
     }
-    return undefined;
+    return null;
+  };
+
+  return visit(value);
+}
+
+function paragraphs(text: string): SourceBlock[] {
+  return text
+    .split(/\r?\n\s*\r?\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph, index) => ({ id: `paragraph-${index + 1}`, kind: "paragraph" as const, text: paragraph }));
+}
+
+function articleBlocks(tweet: RecordValue): { blocks: SourceBlock[]; title: string | null } | null {
+  const article = readPath(tweet, ["article", "article_results", "result"]);
+  if (!isRecord(article) || !Array.isArray(readPath(article, ["content_state", "blocks"]))) return null;
+
+  const blocks = (readPath(article, ["content_state", "blocks"]) as unknown[])
+    .map((block, index): SourceBlock | null => {
+      if (!isRecord(block)) return null;
+      const text = readString(block.text) ?? readString(block.content);
+      if (!text) return null;
+      const rawKind = (readString(block.type) ?? readString(block.block_type) ?? "").toLowerCase();
+      const kind = rawKind.includes("head") || rawKind.includes("title")
+        ? "heading"
+        : rawKind.includes("quote")
+          ? "quote"
+          : "paragraph";
+      return { id: readString(block.id) ?? `${kind}-${index + 1}`, kind, text };
+    })
+    .filter((block): block is SourceBlock => block !== null);
+
+  return blocks.length ? { blocks, title: readString(article.title) } : null;
+}
+
+function fetchedAt(clock: DiscussionClock): string {
+  const value = clock();
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+export function extractCommunityDiscussion(
+  normalized: NormalizedDiscussionSource,
+  payload: unknown,
+  fallback: Partial<FallbackDiscussionMetadata> = {},
+  clock: DiscussionClock = () => new Date(),
+): FetchedSource {
+  const tweet = findRootTweet(payload, normalized.xStatusId);
+  if (!tweet) throw new Error(`Could not find X status ${normalized.xStatusId} in the response`);
+
+  const legacy = readPath(tweet, ["legacy"]);
+  const userLegacy = readPath(tweet, ["core", "user_results", "result", "legacy"]);
+  const article = articleBlocks(tweet);
+  const noteText = readString(readPath(tweet, ["note_tweet", "note_tweet_results", "result", "text"]));
+  const legacyText = readString(isRecord(legacy) ? legacy.full_text : undefined);
+
+  const content = article
+    ? { blocks: article.blocks, sourceType: "article" as const, title: article.title }
+    : noteText
+      ? { blocks: paragraphs(noteText), sourceType: "noteTweet" as const, title: null }
+      : legacyText
+        ? { blocks: paragraphs(legacyText), sourceType: "tweet" as const, title: null }
+        : null;
+
+  if (!content || !content.blocks.length) {
+    throw new Error(`X status ${normalized.xStatusId} has no readable text`);
   }
-  if (!isRecord(value) || visited.has(value)) return undefined;
-  visited.add(value);
 
-  const legacy = asRecord(value.legacy);
-  if (value.rest_id === sourceId || legacy?.id_str === sourceId) return value;
-
-  for (const child of Object.values(value)) {
-    const found = findRootTweet(child, sourceId, visited);
-    if (found) return found;
-  }
-  return undefined;
-}
-
-function normalizeBlockKind(type: unknown): SourceBlockKind {
-  if (typeof type === "string" && type.startsWith("header")) return "heading";
-  if (type === "blockquote") return "quote";
-  return "paragraph";
-}
-
-function readArticleBlocks(tweet: UnknownRecord): SourceBlock[] {
-  const blocks = readPath(tweet, ["article", "article_results", "result", "content_state", "blocks"]);
-  if (!Array.isArray(blocks)) return [];
-
-  return blocks.flatMap((block, index) => {
-    const record = asRecord(block);
-    const text = typeof record?.text === "string" ? record.text.trim() : "";
-    if (!text) return [];
-    return [{ id: typeof record.key === "string" ? record.key : `article-${index}`, kind: normalizeBlockKind(record.type), text }];
-  });
-}
-
-function readNoteTweetBlocks(tweet: UnknownRecord): SourceBlock[] {
-  const noteText = readPath(tweet, ["note_tweet", "note_tweet_results", "result", "text"]);
-  const legacyText = readPath(tweet, ["legacy", "full_text"]);
-  const fullText = typeof noteText === "string" ? noteText : typeof legacyText === "string" ? legacyText : "";
-
-  return fullText.split(/\n\s*\n/).map((text) => text.trim()).filter(Boolean).map((text, index) => ({
-    id: `paragraph-${index}`,
-    kind: "paragraph" as const,
-    text,
-  }));
-}
-
-function readIdentity(tweet: UnknownRecord, source: DiscussionSource) {
-  const user = asRecord(readPath(tweet, ["core", "user_results", "result"]));
-  const userCore = asRecord(user?.core);
-  const userLegacy = asRecord(user?.legacy);
-  const userAvatar = asRecord(user?.avatar);
-  const legacy = asRecord(tweet.legacy);
-  const name = typeof userCore?.name === "string" ? userCore.name : typeof userLegacy?.name === "string" ? userLegacy.name : source.fallbackAuthor;
-  const screenNameValue = typeof userCore?.screen_name === "string" ? userCore.screen_name : userLegacy?.screen_name;
-  const screenName = typeof screenNameValue === "string" ? `@${screenNameValue}` : source.fallbackHandle;
-  const avatar = typeof userAvatar?.image_url === "string" ? userAvatar.image_url : typeof userLegacy?.profile_image_url_https === "string" ? userLegacy.profile_image_url_https : source.fallbackAvatar;
-  const publishedAt = typeof legacy?.created_at === "string" ? legacy.created_at : undefined;
-  return { author: name, handle: screenName, avatar, publishedAt };
-}
-
-export function extractDiscussionPost(payload: unknown, source: DiscussionSource): DiscussionPost {
-  const tweet = findRootTweet(payload, source.sourceId);
-  if (!tweet) throw new Error(`Unable to locate source tweet ${source.sourceId}`);
-
-  const articleBlocks = readArticleBlocks(tweet);
-  const blocks = articleBlocks.length > 0 ? articleBlocks : readNoteTweetBlocks(tweet);
-  if (blocks.length === 0) throw new Error(`Source tweet ${source.sourceId} contains no readable text`);
-
-  return { sourceId: source.sourceId, href: source.href, ...readIdentity(tweet, source), blocks };
-}
-
-export async function loadDiscussion(
-  discussion: string,
-  fetcher: typeof fetch = fetch,
-  apiKey = process.env.TWITTER241_API_KEY,
-): Promise<DiscussionPayload> {
-  if (discussion !== "wtf-is-pearl") throw new Error("Unknown community discussion");
-  if (!apiKey) throw new Error("TWITTER241_API_KEY is not configured on the server");
-
-  const sources = await Promise.all(DISCUSSION_SOURCES.map(async (source) => {
-    const response = await fetcher(`https://twitter241.p.rapidapi.com/tweet?pid=${source.sourceId}`, {
-      headers: {
-        "x-rapidapi-host": "twitter241.p.rapidapi.com",
-        "x-rapidapi-key": apiKey,
-      },
-    });
-    if (!response.ok) throw new Error(`Twitter241 request failed for ${source.sourceId}: ${response.status}`);
-    return extractDiscussionPost(await response.json(), source);
-  }));
-
-  return { discussion: "wtf-is-pearl", fetchedAt: new Date().toISOString(), sources };
+  return {
+    xStatusId: normalized.xStatusId,
+    url: normalized.url,
+    author: readString(isRecord(userLegacy) ? userLegacy.name : undefined) ?? fallback.author ?? null,
+    handle: readString(isRecord(userLegacy) ? userLegacy.screen_name : undefined) ?? fallback.handle ?? null,
+    avatarUrl:
+      readString(isRecord(userLegacy) ? userLegacy.profile_image_url_https : undefined) ?? fallback.avatarUrl ?? null,
+    publishedAt: readString(isRecord(legacy) ? legacy.created_at : undefined) ?? fallback.publishedAt ?? null,
+    fetchedAt: fetchedAt(clock),
+    ...content,
+  };
 }

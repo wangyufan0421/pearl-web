@@ -1,4 +1,5 @@
 import type { DataResult } from "./prlstats";
+import { snapshotMetadata } from "./snapshotMetadata";
 
 type Fetcher = typeof fetch;
 type RecordValue = Record<string, unknown>;
@@ -43,7 +44,7 @@ async function request<T>(path: string, parse: (payload: unknown) => T, fallback
   try {
     const response = await fetcher(`/api/prlstats${path}`, { signal: controller.signal });
     if (!response.ok) throw new Error(`${path} failed`);
-    return { data: parse(await response.json()), sourceKind: "live", fetchedAt: new Date() };
+    return { data: parse(await response.json()), sourceKind: "live", ...snapshotMetadata(response) };
   } catch {
     return { data: fallback, sourceKind: "fallback", fetchedAt: new Date(), notice };
   } finally {
@@ -101,9 +102,11 @@ export function getTxSizes(fetcher: Fetcher = fetch) {
   return request("/api/txsizes?range=30d", (payload): TxSizeData => {
     const data = object(payload); const stats = object(data.stats);
     if (!Array.isArray(data.whales) || !Array.isArray(data.daily)) throw new Error("Invalid TX size data");
+    const rawShare = stats.top_share;
+    const topShare = Array.isArray(rawShare) ? number(rawShare.find(pair => Array.isArray(pair) && pair[0] === 1)?.[1]) : number(rawShare);
     return {
       range: text(data.range), unit: text(data.unit), basis: text(data.basis),
-      stats: Object.fromEntries(Object.entries(stats).filter(([, value]) => typeof value === "number")) as Record<string, number>,
+      stats: { ...Object.fromEntries(Object.entries(stats).filter(([, value]) => typeof value === "number")), top_share: topShare } as Record<string, number>,
       whales: data.whales.map((item) => { const row = object(item); return { atLeast: number(row.at_least), count: number(row.count), share: number(row.share) }; }),
       daily: data.daily.map((item) => { const row = object(item); return { timestamp: new Date(number(row.t) * 1000), count: number(row.n), median: number(row.p50), p90: number(row.p90), p99: number(row.p99) }; }),
     };

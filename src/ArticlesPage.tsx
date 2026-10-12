@@ -1,4 +1,5 @@
-import { ArchiveNavigation } from "./ArchiveNavigation";
+import { useLanguage } from "./i18n/Language";
+import { SiteHeader } from "./SiteHeader";
 
 type ResearchArticle = {
   title: string;
@@ -126,39 +127,36 @@ const articles: ResearchArticle[] = [
 ];
 
 function SourceLink({ article }: { article: ResearchArticle }) {
-  return <a className="article-source-link" href={article.href} {...(!article.internal ? { target: "_blank", rel: "noreferrer" } : {})}>
-    {article.internal ? "站内阅读" : "阅读原文"}<span aria-hidden="true">↗</span>
+  const { t, href: localizeHref, language } = useLanguage();
+  return <a className="article-source-link" href={localizeHref(article.href)} {...(!article.internal ? { target: "_blank", rel: "noreferrer" } : {})}>
+    {t(article.internal ? "站内阅读" : "阅读原文")}<span aria-hidden="true">↗</span>
   </a>;
 }
 
 export default function ArticlesPage() {
+  const { t, href: localizeHref, language } = useLanguage();
   return <main className="site-shell articles-page">
-    <header className="topbar">
-      <a className="brand" href="/">Pearl <span>中文社区</span></a>
-      <nav aria-label="主导航">
-        <a href="/overview">数据概览</a><a href="/chain">链上实况</a><a href="/valuation">数据汇总</a><ArchiveNavigation current />
-      </nav>
-    </header>
+    <SiteHeader />
 
     <section className="articles-hero" aria-labelledby="articles-title">
       <div>
         <p className="eyebrow">ARCHIVE / READING LIST</p>
-        <h1 id="articles-title">Pearl相关文章</h1>
-        <p>围绕 Pearl 的协议、学术论文与可证性；也收录英文社区长文 / thread。一边是构造与经济实证，一边是社区 thesis 与辩论，可以自行判断信号强度。</p>
+        <h1 id="articles-title">{t("Pearl相关文章")}</h1>
+        <p>{t("围绕 Pearl 的协议、学术论文与可证性；也收录英文社区长文 / thread。一边是构造与经济实证，一边是社区 thesis 与辩论，可以自行判断信号强度。")}</p>
       </div>
-      <aside className="articles-hero-note" aria-label="阅读卡说明">
+      <aside className="articles-hero-note" aria-label={t("阅读卡说明")}>
         <span>16 / READING CARDS</span>
-        <strong>从原始协议到英文社区长文，既有主源也有叙事与辩论的边界。</strong>
-        <div><a href="/archive/whitepaper">阅读 INT 白皮书 <i aria-hidden="true">→</i></a><a href="/archive/core-mechanism">查看核心机制 <i aria-hidden="true">→</i></a></div>
+        <strong>{t("从原始协议到英文社区长文，既有主源也有叙事与辩论的边界。")}</strong>
+        <div><a href={localizeHref("/archive/whitepaper")}>{t("阅读 INT 白皮书 ")}<i aria-hidden="true">→</i></a><a href={localizeHref("/archive/core-mechanism")}>{t("查看核心机制 ")}<i aria-hidden="true">→</i></a></div>
       </aside>
     </section>
 
-    <section className="articles-list" aria-label="Pearl相关文章阅读卡">
+    <section className="articles-list" aria-label={t("Pearl相关文章阅读卡")}>
       {articles.map((article, index) => <article className="article-card" data-testid="article-card" key={article.title}>
-        <div className="article-card-top"><span>{String(index + 1).padStart(2, "0")}</span><div>{article.tags.map((tag) => <b key={tag}>{tag}</b>)}</div></div>
-        <p className="article-authors">{article.authors}</p>
-        <h2><a href={article.href} {...(!article.internal ? { target: "_blank", rel: "noreferrer" } : {})}>{article.title}<span aria-hidden="true">↗</span></a></h2>
-        <p className="article-summary">{article.summary}</p>
+        <div className="article-card-top"><span>{t(String(index + 1).padStart(2, "0"))}</span><div>{article.tags.map((tag) => <b key={tag}>{t(tag)}</b>)}</div></div>
+        <p className="article-authors">{t(article.authors)}</p>
+        <h2><a href={localizeHref(article.href)} {...(!article.internal ? { target: "_blank", rel: "noreferrer" } : {})}>{t(article.title)}<span aria-hidden="true">↗</span></a></h2>
+        <p className="article-summary">{t(article.summary)}</p>
         <SourceLink article={article} />
       </article>)}
     </section>

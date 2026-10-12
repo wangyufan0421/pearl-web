@@ -64,7 +64,7 @@ describe("getMetricSeries", () => {
 });
 
 describe("getLighterCandles", () => {
-  it("reads PRL OHLC candles from the single Lighter perpetual market", async () => {
+  it("reads saved PRL OHLC candles from the same-origin backend", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-08T12:00:00Z"));
     const fetcher = vi.fn().mockResolvedValue(jsonResponse({
@@ -76,12 +76,24 @@ describe("getLighterCandles", () => {
     const result = await getLighterCandles("7D", fetcher);
 
     expect(fetcher).toHaveBeenCalledWith(
-      expect.stringContaining("https://mainnet.zklighter.elliot.ai/api/v1/candles?market_id=4097&resolution=1h"),
+      "/api/market/candles?range=7D",
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(result.sourceKind).toBe("live");
     expect(result.data.candles[0]).toMatchObject({ open: 1.2, high: 1.4, low: 1.1, close: 1.3 });
     vi.useRealTimers();
+  });
+});
+
+describe("saved snapshot metadata", () => {
+  it("uses backend collection time and marks retained stale data", async () => {
+    const response = jsonResponse(networkPayload);
+    response.headers.set("x-data-fetched-at", "2026-10-12T00:00:00Z");
+    response.headers.set("x-data-stale", "true");
+    const result = await getNetworkSnapshot(async () => response);
+    expect(result.fetchedAt.toISOString()).toBe("2026-10-12T00:00:00.000Z");
+    expect(result.notice).toContain("上次成功");
+    expect(result.sourceKind).toBe("live");
   });
 });
 

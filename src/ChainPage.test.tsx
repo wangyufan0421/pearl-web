@@ -1,10 +1,17 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import ChainPage, { Trend } from "./ChainPage";
+import * as runtime from "./data/runtime";
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("ChainPage", () => {
+  it("keeps saved pool data visible alongside a stale-data notice", async () => {
+    vi.spyOn(runtime, "loadPools").mockResolvedValue({ data: [{ id: "saved", name: "Saved Pool", blocks24h: 2, share24h: 12, feePct: null, payoutScheme: null }], sourceKind: "live", fetchedAt: new Date("2026-10-12T00:00:00Z"), stale: true, notice: "当前显示上次成功保存的数据，后台仍在尝试更新。" });
+    render(<ChainPage />);
+    expect(await screen.findByText("当前显示上次成功保存的数据，后台仍在尝试更新。")).toBeTruthy();
+    expect(screen.getByText("Saved Pool")).toBeTruthy();
+  });
   it("renders every public-chain module with its provenance boundary", () => {
     render(<ChainPage />);
 

@@ -31,3 +31,16 @@
 .archive-nav-item:hover .archive-nav-trigger,.archive-nav-item:focus-within .archive-nav-trigger { color:var(--rose); }
 
 @media (max-width:800px) { .topbar nav { height:auto; }.archive-subnav { right:0; min-width:12rem; } }
+.language-switch { margin-left:auto; flex-shrink:0; display:flex; align-items:center; gap:5px; padding:4px; border:1px solid var(--line); border-radius:999px; background:rgba(255,254,250,.65); }
+.language-switch button { padding:6px 9px; border:0; border-radius:999px; background:transparent; color:var(--muted); font-family:var(--font-mono); font-size:11px; cursor:pointer; }
+.language-switch button[aria-pressed="true"] { color:var(--ink); background:rgba(168,63,98,.11); }
+.language-switch span { color:var(--muted); font-size:10px; }
+.language-switch button:focus-visible { outline:2px solid var(--rose); outline-offset:2px; }
+html[lang="en"] .archive-hero h1,html[lang="en"] .mechanism-hero h1,html[lang="en"] .articles-hero h1,html[lang="en"] .people-hero h1,html[lang="en"] .whitepaper-hero h1 { overflow-wrap:normal; font-size:clamp(42px,5vw,76px); letter-spacing:-.045em; line-height:1.05; }
+html[lang="en"] .article-card h2,html[lang="en"] .connection-grid h3,html[lang="en"] .speculation-grid h3 { overflow-wrap:break-word; }
+@media (max-width:720px) {
+  .topbar { height:auto; min-height:72px; flex-wrap:wrap; gap:10px 14px; padding:13px 16px; }
+  .topbar > nav { order:3; width:100%; gap:15px; flex-wrap:wrap; }
+  .topbar > nav > a,.archive-nav-trigger { font-size:12px; }
+  .language-switch { margin-left:auto; }
+}

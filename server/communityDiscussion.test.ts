@@ -1,72 +1,119 @@
-import { describe, expect, it, vi } from "vitest";
-import { DISCUSSION_SOURCES, extractDiscussionPost, loadDiscussion } from "./communityDiscussion";
+import { describe, expect, it } from "vitest";
+import { extractCommunityDiscussion } from "./communityDiscussion";
 
-const articleTweet = {
-  rest_id: "2108519545514410023",
-  core: { user_results: { result: { legacy: { name: "blocmates.", screen_name: "blocmates", profile_image_url_https: "https://example.com/blocmates.jpg" } } } },
-  legacy: { created_at: "Thu Oct 09 11:26:00 +0000 2026" },
-  article: {
-    article_results: {
+const normalized = {
+  xStatusId: "2108519545514410023",
+  url: "https://x.com/blocmates/status/2108519545514410023",
+};
+
+const rootTweet = (result: Record<string, unknown>) => ({
+  data: { tweetResult: { result } },
+});
+
+const author = {
+  core: {
+    user_results: {
       result: {
-        content_state: {
-          blocks: [
-            { key: "one", type: "unstyled", text: "First paragraph" },
-            { key: "two", type: "header-one", text: "Article heading" },
-          ],
+        legacy: {
+          name: "Blocmates",
+          screen_name: "blocmates",
+          profile_image_url_https: "https://images.example/avatar.jpg",
         },
       },
     },
   },
+  legacy: { created_at: "Sat Oct 11 10:30:00 +0000 2026" },
 };
 
-const noteTweet = {
-  rest_id: "2108579196268077447",
-  core: { user_results: { result: { legacy: { name: "Tulip King 🌷", screen_name: "tulipking", profile_image_url_https: "https://example.com/tulip.jpg" } } } },
-  legacy: { created_at: "Thu Oct 09 15:23:00 +0000 2026" },
-  note_tweet: { note_tweet_results: { result: { text: "Opening thought\n\nText after Show more" } } },
-};
+describe("extractCommunityDiscussion", () => {
+  it("uses the complete Article blocks and title", () => {
+    const payload = rootTweet({
+      rest_id: normalized.xStatusId,
+      ...author,
+      article: {
+        article_results: {
+          result: {
+            title: "A durable discussion",
+            content_state: {
+              blocks: [
+                { id: "heading-1", type: "heading", text: "Opening" },
+                { id: "quote-1", type: "quote", text: "The full quote." },
+              ],
+            },
+          },
+        },
+      },
+    });
 
-describe("community discussion source extraction", () => {
-  it("extracts every Article content block from the matched root tweet", () => {
-    const post = extractDiscussionPost({ data: { tweet_results: { result: articleTweet } } }, DISCUSSION_SOURCES[0]);
-
-    expect(post).toMatchObject({
-      sourceId: "2108519545514410023",
-      author: "blocmates.",
+    expect(extractCommunityDiscussion(normalized, payload, undefined, () => "2026-10-11T12:00:00.000Z")).toEqual({
+      xStatusId: normalized.xStatusId,
+      url: normalized.url,
+      author: "Blocmates",
+      handle: "blocmates",
+      avatarUrl: "https://images.example/avatar.jpg",
+      publishedAt: "Sat Oct 11 10:30:00 +0000 2026",
+      fetchedAt: "2026-10-11T12:00:00.000Z",
       blocks: [
-        { kind: "paragraph", text: "First paragraph" },
-        { kind: "heading", text: "Article heading" },
+        { id: "heading-1", kind: "heading", text: "Opening" },
+        { id: "quote-1", kind: "quote", text: "The full quote." },
       ],
+      sourceType: "article",
+      title: "A durable discussion",
     });
   });
 
-  it("extracts the complete note text behind X's Show more truncation", () => {
-    const tulipSource = DISCUSSION_SOURCES.find((source) => source.sourceId === "2108579196268077447");
-    if (!tulipSource) throw new Error("Tulip source is required for this test");
-    const post = extractDiscussionPost({ data: { quoted: articleTweet, tweet_results: { result: noteTweet } } }, tulipSource);
+  it("uses note tweet text that remains available behind Show more", () => {
+    const completeText = "This is the complete note, including the text behind Show more.";
+    const payload = rootTweet({
+      rest_id: normalized.xStatusId,
+      ...author,
+      legacy: { ...author.legacy, full_text: "This is the truncated preview…" },
+      note_tweet: { note_tweet_results: { result: { text: completeText } } },
+    });
 
-    expect(post.blocks.at(-1)).toEqual({ id: "paragraph-1", kind: "paragraph", text: "Text after Show more" });
+    expect(extractCommunityDiscussion(normalized, payload, undefined, () => "2026-10-11T12:00:00.000Z")).toMatchObject({
+      sourceType: "noteTweet",
+      blocks: [{ id: "paragraph-1", kind: "paragraph", text: completeText }],
+      title: null,
+    });
   });
 
-  it("loads the two configured sources without exposing the service key to callers", async () => {
-    const fetcher = vi.fn(async (url: string) => ({
-      ok: true,
-      json: async () => url.includes("2108519545514410023")
-        ? { data: { tweet_results: { result: articleTweet } } }
-        : { data: { tweet_results: { result: { ...noteTweet, rest_id: new URL(url).searchParams.get("pid") } } } },
-    })) as unknown as typeof fetch;
+  it("uses legacy full_text for an ordinary tweet", () => {
+    const payload = rootTweet({
+      rest_id: normalized.xStatusId,
+      ...author,
+      legacy: { ...author.legacy, full_text: "First paragraph\n\nSecond paragraph" },
+    });
 
-    const discussion = await loadDiscussion("wtf-is-pearl", fetcher, "server-only-key");
+    expect(extractCommunityDiscussion(normalized, payload, undefined, () => "2026-10-11T12:00:00.000Z")).toMatchObject({
+      sourceType: "tweet",
+      blocks: [
+        { id: "paragraph-1", kind: "paragraph", text: "First paragraph" },
+        { id: "paragraph-2", kind: "paragraph", text: "Second paragraph" },
+      ],
+      title: null,
+    });
+  });
 
-    expect(discussion.sources).toHaveLength(5);
-    expect(DISCUSSION_SOURCES.map((source) => source.sourceId)).toEqual([
-      "2108519545514410023",
-      "2108528311735607793",
-      "2108568857317118362",
-      "2108579196268077447",
-      "2108928836780065031",
-    ]);
-    expect(fetcher).toHaveBeenCalledWith(expect.stringContaining("pid=2108519545514410023"), expect.objectContaining({ headers: expect.any(Object) }));
-    expect(JSON.stringify(discussion)).not.toContain("server-only-key");
+  it("matches the requested root status rather than a quoted child", () => {
+    const payload = rootTweet({
+      rest_id: normalized.xStatusId,
+      ...author,
+      legacy: {
+        ...author.legacy,
+        full_text: "The target root text.",
+        quoted_status_result: {
+          result: {
+            rest_id: "9999999999999999999",
+            legacy: { full_text: "Quoted child text that must not be selected." },
+          },
+        },
+      },
+    });
+
+    expect(extractCommunityDiscussion(normalized, payload, undefined, () => "2026-10-11T12:00:00.000Z")).toMatchObject({
+      xStatusId: normalized.xStatusId,
+      blocks: [{ id: "paragraph-1", kind: "paragraph", text: "The target root text." }],
+    });
   });
 });

@@ -1,9 +1,12 @@
+import { useLanguage, formatLocale } from "./i18n/Language";
+import { SiteHeader } from "./SiteHeader";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { DataFreshness } from "./DataFreshness";
+import { DataStatusSummary, metricLabels } from "./DataStatusSummary";
 import { type DataResult, type MetricPoint, type MetricSeries, type SourceKind } from "./data/prlstats";
 import { loadMetricSeries, loadNetworkSnapshot, subscribeToDataUpdates } from "./data/runtime";
 import type { NetworkSnapshot } from "./data/schema";
 import { formatUsd } from "./lib/format";
-import { ArchiveNavigation } from "./ArchiveNavigation";
 
 const metricIds = ["price", "prl_btc", "volume", "cost_allin", "supply", "mcap_vs_btc", "fdv_vs_btc", "inflation", "miner_revenue"] as const;
 type MetricId = typeof metricIds[number];
@@ -11,16 +14,16 @@ type PriceRange = "30D" | "90D" | "ALL";
 type ChartMetricId = Extract<MetricId, "price" | "prl_btc" | "mcap_vs_btc" | "fdv_vs_btc" | "volume" | "cost_allin">;
 
 function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("zh-CN", { month: "numeric", day: "numeric", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat(formatLocale(), { month: "numeric", day: "numeric", year: "numeric" }).format(date);
 }
 
 function formatCompact(value: number, digits = 2) {
-  return new Intl.NumberFormat("zh-CN", { notation: "compact", maximumFractionDigits: digits }).format(value);
+  return new Intl.NumberFormat(formatLocale(), { notation: "compact", maximumFractionDigits: digits }).format(value);
 }
 
 function formatPrl(value: number) { return `${formatCompact(value)} PRL`; }
 function formatPercent(value: number, digits = 3) { return `${value.toFixed(digits)}%`; }
-function formatSats(value: number) { return `${new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 0 }).format(value)} sats`; }
+function formatSats(value: number) { return `${new Intl.NumberFormat(formatLocale(), { maximumFractionDigits: 0 }).format(value)} sats`; }
 
 export function chartLatestValue(points: MetricPoint[], formatter: (value: number) => string) {
   const value = points.at(-1)?.value;
@@ -43,16 +46,19 @@ function valueOrState(result: DataResult<MetricSeries> | undefined, formatter: (
 function sourceKind(result: DataResult<MetricSeries> | undefined): SourceKind { return result?.sourceKind ?? "fallback"; }
 
 function DataCard({ label, value, detail, kind = "live", tone = "ink" }: { label: string; value: string; detail: string; kind?: SourceKind; tone?: "ink" | "rose" | "blue" | "yellow" }) {
+  const { t, href: localizeHref, language } = useLanguage();
   return <article className={`valuation-card tone-${tone}`}>
-    <p>{label}</p><strong>{value}</strong><span><i className={`status-dot ${kind}`} />{detail}</span>
+    <p>{t(label)}</p><strong>{t(value)}</strong><span><i className={`status-dot ${kind}`} />{t(detail)}</span>
   </article>;
 }
 
 function ModuleHeader({ eyebrow, title, source }: { eyebrow: string; title: ReactNode; source: string }) {
-  return <header className="valuation-module-header"><p>{eyebrow}</p><h2>{title}</h2><span>{source}</span></header>;
+  const { t, href: localizeHref, language } = useLanguage();
+  return <header className="valuation-module-header"><p>{t(eyebrow)}</p><h2>{t(title)}</h2><span>{t(source)}</span></header>;
 }
 
 export function PriceTrend({ points, range = "90D", label, formatter }: { points: MetricPoint[]; range?: PriceRange; label: string; formatter: (value: number) => string }) {
+  const { t, href: localizeHref, language } = useLanguage();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const visible = useMemo(() => {
     if (range === "ALL") return points;
@@ -84,21 +90,22 @@ export function PriceTrend({ points, range = "90D", label, formatter }: { points
     setHoveredIndex((current) => current === nextIndex ? current : nextIndex);
   };
 
-  if (!chart) return <div className="price-trend-empty">图表序列正在同步中</div>;
+  if (!chart) return <div className="price-trend-empty">{t("图表序列正在同步中")}</div>;
   return <div className="price-trend" onMouseLeave={() => setHoveredIndex(null)}>
-    <svg data-testid="price-trend-interaction" viewBox={`0 0 ${chart.width} ${chart.height}`} role="img" aria-label={`${label} 历史走势`} onMouseMove={(event) => selectPointAtPointer(event.clientX, event.currentTarget)}>
+    <svg data-testid="price-trend-interaction" viewBox={`0 0 ${chart.width} ${chart.height}`} role="img" aria-label={t(`${label} 历史走势`)} onMouseMove={(event) => selectPointAtPointer(event.clientX, event.currentTarget)}>
       <defs><linearGradient id="price-trend-fill" x1="0" x2="0" y1="0" y2="1"><stop stopColor="rgba(168,63,98,.20)" /><stop offset="1" stopColor="rgba(168,63,98,0)" /></linearGradient></defs>
-      <g className="price-trend-grid">{chart.ticks.map((value) => <g key={value}><line x1={chart.left} x2={chart.left + chart.plotWidth} y1={chart.y(value)} y2={chart.y(value)} /><text x={chart.left + chart.plotWidth + 10} y={chart.y(value) + 4}>{formatter(value)}</text></g>)}</g>
+      <g className="price-trend-grid">{chart.ticks.map((value) => <g key={value}><line x1={chart.left} x2={chart.left + chart.plotWidth} y1={chart.y(value)} y2={chart.y(value)} /><text x={chart.left + chart.plotWidth + 10} y={chart.y(value) + 4}>{t(formatter(value))}</text></g>)}</g>
       <path className="price-trend-area" d={`${chart.path} L${chart.x(visible.length - 1)} ${chart.top + chart.plotHeight} L${chart.x(0)} ${chart.top + chart.plotHeight} Z`} />
       <path className="price-trend-line" d={chart.path} />
-      <g className="price-trend-axis">{chart.xTicks.map((index) => <text key={index} x={chart.x(index)} y={chart.height - 8} textAnchor="middle">{formatDate(visible[index].timestamp)}</text>)}</g>
+      <g className="price-trend-axis">{chart.xTicks.map((index) => <text key={index} x={chart.x(index)} y={chart.height - 8} textAnchor="middle">{t(formatDate(visible[index].timestamp))}</text>)}</g>
       {hovered && hoveredIndex !== null ? <g className="price-trend-crosshair"><line x1={chart.x(hoveredIndex)} x2={chart.x(hoveredIndex)} y1={chart.top} y2={chart.top + chart.plotHeight} /><circle cx={chart.x(hoveredIndex)} cy={chart.y(hovered.value)} r="3.5" /></g> : null}
     </svg>
-    {hovered ? <div className="price-trend-tooltip" data-testid="price-trend-tooltip"><b>{formatDate(hovered.timestamp)}</b><span>{formatter(hovered.value)}</span></div> : null}
+    {hovered ? <div className="price-trend-tooltip" data-testid="price-trend-tooltip"><b>{t(formatDate(hovered.timestamp))}</b><span>{t(formatter(hovered.value))}</span></div> : null}
   </div>;
 }
 
 export default function ValuationPage() {
+  const { t, href: localizeHref, language } = useLanguage();
   const [metrics, setMetrics] = useState<Partial<Record<MetricId, DataResult<MetricSeries>>>>({});
   const [network, setNetwork] = useState<DataResult<NetworkSnapshot> | null>(null);
   const [range, setRange] = useState<PriceRange>("90D");
@@ -107,9 +114,7 @@ export default function ValuationPage() {
   useEffect(() => {
     let active = true;
     const sync = () => {
-      void Promise.all(metricIds.map(async (id) => [id, await loadMetricSeries(id)] as const)).then((entries) => {
-        if (active) setMetrics(Object.fromEntries(entries));
-      });
+      metricIds.forEach(id => { void loadMetricSeries(id).then(result => { if (active) setMetrics(previous => ({ ...previous, [id]: result })); }); });
       void loadNetworkSnapshot().then((result) => { if (active) setNetwork(result); });
     };
     sync();
@@ -128,29 +133,31 @@ export default function ValuationPage() {
   const issuanceValue = network === null || price === undefined ? undefined : network.data.emissionPrlDay * price;
 
   return <main className="site-shell valuation-page">
-    <header className="topbar"><a className="brand" href="/">Pearl <span>中文社区</span></a><nav aria-label="主导航"><a href="/overview">数据概览</a><a href="/chain">链上数据</a><a href="/valuation" aria-current="page">数据汇总</a><ArchiveNavigation /></nav></header>
+    <SiteHeader />
     <div className="valuation-wrap">
-      <header className="valuation-intro"><p>PEARL / DATA</p><h1>PRL 数据汇总</h1><span>价格、供应、流动性与相对尺度，共同构成完整的数据语境。</span></header>
+      <DataStatusSummary items={[{ label: "网络概览", result: network }, ...metricIds.map(id => ({ label: metricLabels[id], result: metrics[id] }))]} />
+      <header className="valuation-intro"><p>PEARL / DATA</p><h1>{t("PRL 数据汇总")}</h1><span>{t("价格、供应、流动性与相对尺度，共同构成完整的数据语境。")}</span></header>
 
       <section className="valuation-module">
-        <ModuleHeader eyebrow="01 / CHART" title="PRL 数据图表" source={selectedChartOption.source} />
+        <ModuleHeader eyebrow="01 / CHART" title={t("PRL 数据图表")} source={t(selectedChartOption.source)} />
         <div className="valuation-price-panel">
-          <div className="valuation-toolbar"><span>{selectedChartOption.label}<b data-testid="chart-latest-value">{chartLatestValue(selectedChartPoints, selectedChartOption.formatter)}</b></span><div className="price-chart-controls"><label className="chart-metric-select"><span>图表指标</span><select aria-label="图表指标" value={selectedChartMetric} onChange={(event) => setSelectedChartMetric(event.target.value as ChartMetricId)}>{chartOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label><div className="valuation-range-tabs">{(["30D", "90D", "ALL"] as PriceRange[]).map((item) => <button type="button" className={range === item ? "active" : ""} onClick={() => setRange(item)} key={item}>{item}</button>)}</div></div></div>
-          <PriceTrend points={selectedChartPoints} range={range} label={selectedChartOption.label} formatter={selectedChartOption.formatter} />
-          <p>选择不同指标即可切换历史序列。图表为单值时间序列，并非 OHLC K 线。</p>
+          <div className="valuation-toolbar"><span>{t(selectedChartOption.label)}<b data-testid="chart-latest-value">{t(chartLatestValue(selectedChartPoints, selectedChartOption.formatter))}</b></span><div className="price-chart-controls"><label className="chart-metric-select"><span>{t("图表指标")}</span><select aria-label={t("图表指标")} value={t(selectedChartMetric)} onChange={(event) => setSelectedChartMetric(event.target.value as ChartMetricId)}>{chartOptions.map((option) => <option key={option.id} value={t(option.id)}>{t(option.label)}</option>)}</select></label><div className="valuation-range-tabs">{(["30D", "90D", "ALL"] as PriceRange[]).map((item) => <button type="button" className={range === item ? "active" : ""} onClick={() => setRange(item)} key={item}>{t(item)}</button>)}</div></div></div>
+          <PriceTrend points={selectedChartPoints} range={range} label={t(selectedChartOption.label)} formatter={selectedChartOption.formatter} />
+          <DataFreshness result={metric(selectedChartMetric)} />
+          <p>{t("选择不同指标即可切换历史序列。图表为单值时间序列，并非 OHLC K 线。")}</p>
         </div>
-        <div className="valuation-card-grid price-cards"><DataCard label="PRL 参考价" value={valueOrState(metric("price"), formatUsd)} detail="公开价格序列 · USD / PRL" kind={sourceKind(metric("price"))} tone="rose" /><DataCard label="PRL / BTC" value={valueOrState(metric("prl_btc"), formatSats)} detail="一枚 PRL 折算的 BTC 价值" kind={sourceKind(metric("prl_btc"))} /><DataCard label="24h 成交量" value={valueOrState(metric("volume"), formatUsd)} detail="公开汇总成交量 · USD" kind={sourceKind(metric("volume"))} /></div>
+        <div className="valuation-card-grid price-cards"><DataCard label={t("PRL 参考价")} value={t(valueOrState(metric("price"), formatUsd))} detail={t("公开价格序列 · USD / PRL")} kind={sourceKind(metric("price"))} tone="rose" /><DataCard label={t("PRL / BTC")} value={t(valueOrState(metric("prl_btc"), formatSats))} detail={t("一枚 PRL 折算的 BTC 价值")} kind={sourceKind(metric("prl_btc"))} /><DataCard label={t("24h 成交量")} value={t(valueOrState(metric("volume"), formatUsd))} detail={t("公开汇总成交量 · USD")} kind={sourceKind(metric("volume"))} /></div>
       </section>
 
       <section className="valuation-module">
-        <ModuleHeader eyebrow="02 / VALUATION" title="估值" source="供应量与 BTC 相对尺度" />
-        <div className="valuation-card-grid valuation-cards"><DataCard label="流通市值" value={marketCapState} detail="PRL 参考价 × 流通供应量" kind={sourceKind(metric("price"))} tone="blue" /><DataCard label="FDV" value={fdvState} detail="PRL 参考价 × 21 亿 PRL 最大供应量" kind={sourceKind(metric("price"))} /><DataCard label="流通市值 / BTC" value={valueOrState(metric("mcap_vs_btc"), (value) => formatPercent(value))} detail="Pearl 流通市值占 Bitcoin 市值" kind={sourceKind(metric("mcap_vs_btc"))} /><DataCard label="FDV / BTC" value={valueOrState(metric("fdv_vs_btc"), (value) => formatPercent(value))} detail="Pearl FDV 占 Bitcoin FDV" kind={sourceKind(metric("fdv_vs_btc"))} /></div>
-        <aside className="valuation-formula"><b>口径说明</b><span>流通市值采用价格序列的最新点 × 流通供应序列的最新点；FDV 使用同一价格 × 2,100,000,000 PRL。两项 BTC 比例直接读取 prlstats 序列。</span></aside>
+        <ModuleHeader eyebrow="02 / VALUATION" title={t("估值")} source={t("供应量与 BTC 相对尺度")} />
+        <div className="valuation-card-grid valuation-cards"><DataCard label={t("流通市值")} value={t(marketCapState)} detail={t("PRL 参考价 × 流通供应量")} kind={sourceKind(metric("price"))} tone="blue" /><DataCard label={t("FDV")} value={t(fdvState)} detail={t("PRL 参考价 × 21 亿 PRL 最大供应量")} kind={sourceKind(metric("price"))} /><DataCard label={t("流通市值 / BTC")} value={t(valueOrState(metric("mcap_vs_btc"), (value) => formatPercent(value)))} detail={t("Pearl 流通市值占 Bitcoin 市值")} kind={sourceKind(metric("mcap_vs_btc"))} /><DataCard label={t("FDV / BTC")} value={t(valueOrState(metric("fdv_vs_btc"), (value) => formatPercent(value)))} detail={t("Pearl FDV 占 Bitcoin FDV")} kind={sourceKind(metric("fdv_vs_btc"))} /></div>
+        <aside className="valuation-formula"><b>{t("口径说明")}</b><span>{t("流通市值采用价格序列的最新点 × 流通供应序列的最新点；FDV 使用同一价格 × 2,100,000,000 PRL。两项 BTC 比例直接读取 prlstats 序列。")}</span></aside>
       </section>
 
       <section className="valuation-module">
-        <ModuleHeader eyebrow="03 / SUPPLY" title="供给" source="发行节奏与公开供应序列" />
-        <div className="valuation-card-grid supply-cards"><DataCard label="流通供应量" value={valueOrState(metric("supply"), formatPrl)} detail="prlstats 流通供应序列" kind={sourceKind(metric("supply"))} /><DataCard label="供应进度" value={network === null ? "读取中" : `${network.data.supplyPercent.toFixed(2)}%`} detail={network === null ? "公开链上快照" : `${formatPrl(network.data.supplyPrl)} 已发行`} kind={network?.sourceKind ?? "fallback"} /><DataCard label="年化通胀率" value={valueOrState(metric("inflation"), (value) => formatPercent(value, 2))} detail="按当前发行节奏年化" kind={sourceKind(metric("inflation"))} /><DataCard label="每日排放" value={network === null ? "读取中" : formatPrl(network.data.emissionPrlDay)} detail="公开网络快照" kind={network?.sourceKind ?? "fallback"} /><DataCard label="每日发行价值" value={issuanceValue === undefined ? network === null || metric("price") === undefined ? "读取中" : "暂未提供" : formatUsd(issuanceValue)} detail="参考价 × 当前日排放" kind={sourceKind(metric("price"))} tone="yellow" /><DataCard label="矿工收入 / 日" value={valueOrState(metric("miner_revenue"), formatUsd)} detail="prlstats 矿工收入序列" kind={sourceKind(metric("miner_revenue"))} /></div>
+        <ModuleHeader eyebrow="03 / SUPPLY" title={t("供给")} source={t("发行节奏与公开供应序列")} />
+        <div className="valuation-card-grid supply-cards"><DataCard label={t("流通供应量")} value={t(valueOrState(metric("supply"), formatPrl))} detail={t("prlstats 流通供应序列")} kind={sourceKind(metric("supply"))} /><DataCard label={t("供应进度")} value={t(network === null ? "读取中" : `${network.data.supplyPercent.toFixed(2)}%`)} detail={t(network === null ? "公开链上快照" : `${formatPrl(network.data.supplyPrl)} 已发行`)} kind={network?.sourceKind ?? "fallback"} /><DataCard label={t("年化通胀率")} value={t(valueOrState(metric("inflation"), (value) => formatPercent(value, 2)))} detail={t("按当前发行节奏年化")} kind={sourceKind(metric("inflation"))} /><DataCard label={t("每日排放")} value={t(network === null ? "读取中" : formatPrl(network.data.emissionPrlDay))} detail={t("公开网络快照")} kind={network?.sourceKind ?? "fallback"} /><DataCard label={t("每日发行价值")} value={t(issuanceValue === undefined ? network === null || metric("price") === undefined ? "读取中" : "暂未提供" : formatUsd(issuanceValue))} detail={t("参考价 × 当前日排放")} kind={sourceKind(metric("price"))} tone="yellow" /><DataCard label={t("矿工收入 / 日")} value={t(valueOrState(metric("miner_revenue"), formatUsd))} detail={t("prlstats 矿工收入序列")} kind={sourceKind(metric("miner_revenue"))} /></div>
       </section>
     </div>
   </main>;

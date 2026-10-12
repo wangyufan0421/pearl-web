@@ -1,3 +1,4 @@
+import { useLanguage } from "./i18n/Language";
 const archiveEntries = [
   ["Pearl 核心机制", "/archive/core-mechanism"],
   ["Pearl社区讨论", "/archive/community-discussion"],
@@ -7,10 +8,11 @@ const archiveEntries = [
 ] as const;
 
 export function ArchiveNavigation({ current = false }: { current?: boolean }) {
+  const { t, href: localizeHref, language } = useLanguage();
   return <div className="archive-nav-item">
-    <a className="archive-nav-trigger" href="/archive" aria-current={current ? "page" : undefined}>Pearl档案</a>
-    <div className="archive-subnav" aria-label="Pearl档案目录">
-      {archiveEntries.map(([label, href]) => <a key={href} href={href}>{label}<span aria-hidden="true">↗</span></a>)}
+    <a className="archive-nav-trigger" href={localizeHref("/archive")} aria-current={current ? "page" : undefined}>{t("Pearl档案")}</a>
+    <div className="archive-subnav" aria-label={t("Pearl档案目录")}>
+      {archiveEntries.map(([label, href]) => <a key={href} href={localizeHref(href)}>{t(label)}<span aria-hidden="true">↗</span></a>)}
     </div>
   </div>;
 }

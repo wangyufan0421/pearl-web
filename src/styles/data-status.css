@@ -1,0 +1,5 @@
+.data-status-summary { margin: 12px 0 20px; color: var(--muted, #686d77); font-size: 12px; }
+.data-status-summary summary { cursor: pointer; padding: 8px 0; }
+.data-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; padding: 12px 0; border-top: 1px solid #e3e6e9; }
+.data-status-grid b { color: var(--ink, #252832); font-weight: 500; }
+.data-status-grid .fineprint { margin: 4px 0; }

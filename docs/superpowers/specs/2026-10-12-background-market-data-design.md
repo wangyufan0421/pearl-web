@@ -1,0 +1,11 @@
+# Background market data on a cloud server
+
+Update after user startup clarification: market collection must also run without Supabase credentials. `server/market/fileStore.ts` now persists atomic local snapshots to `.data/market/`; no credentials defaults to file storage. `MARKET_STORAGE=file|supabase` explicitly selects storage. Both development and production launchers always start the collector. Supabase is optional for market snapshots and remains required for community discussions. Preserve the local data directory for file-based VPS deployments.
+
+The user selected an ordinary cloud server and requested ongoing collection independent of visitors. Build a Node HTTP service plus a separate collector process. Supabase stores the latest successfully validated raw snapshot of each currently supported dataset. Public reads never trigger upstream fetches. Community X sources continue to use explicit authenticated administrator actions.
+
+Collect network, fifteen existing metric series, and both Lighter candle windows every 30 seconds; pools/activity/transaction sizes every five minutes; historical pools/coinage/holders/mined every fifteen minutes. Each job runs immediately on worker startup. Limit upstream concurrency to four, time out requests, and never overlap the same job in one worker. Deploy one collector instance. Each dataset succeeds or fails independently; failure records a safe status while retaining its last successful payload and timestamp.
+
+The API preserves existing prlstats paths and adds a same-origin candles endpoint. It reads saved snapshots, returns fetched-at/staleness metadata, and responds honestly with 503 before a dataset has ever succeeded. The browser displays actual collection timestamps and stale notices. Production has no browser-to-upstream fallback. Browser polling updates the view only; it does not schedule collection.
+
+Ship a Supabase migration, compiled Node entrypoints, a two-process launcher, Linux systemd units for recovery, and deployment instructions. Keep secrets server-side. Verify collector independence, scheduling, non-overlap, failure retention, validation, public read isolation, routing, frontend transport, full tests/build, and a local HTTP smoke test. Live upstream/database behavior requires the user's cloud configuration and is not claimed as tested locally.

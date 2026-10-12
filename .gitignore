@@ -1,5 +1,7 @@
 node_modules/
 dist/
+dist-server/
+.data/
 tmp/
 output/
 *.tsbuildinfo
@@ -7,6 +9,7 @@ tmp-*.html
 .env
 .env.*
 !.env.example
+.worktrees/
 rendered_pearl_int_cn*/
 Pearl_INT_Whitepaper_figures/
 *.docx
@@ -18,3 +21,5 @@ _verify_*.py
 _inspect_*.py
 tmp-articles-b64.txt
 _check_*.py
+appdata
+appdata-space-scan.json

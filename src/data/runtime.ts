@@ -17,7 +17,15 @@ export function createRequestCache(now: () => number = Date.now) {
       const cached = entries.get(key);
       if (!force && cached && now() - cached.loadedAt < ttl) return cached.promise as Promise<T>;
 
-      const promise = Promise.resolve().then(loader);
+      const promise = Promise.resolve().then(loader).then(async result => {
+        if (cached && result && typeof result === "object" && "sourceKind" in result && result.sourceKind === "fallback") {
+          const previous = await cached.promise.catch(() => null);
+          if (previous && typeof previous === "object" && "sourceKind" in previous && previous.sourceKind === "live") {
+            return { ...previous, stale: true, notice: "当前显示上次成功保存的数据，后台仍在尝试更新。" } as T;
+          }
+        }
+        return result;
+      });
       entries.set(key, { loadedAt: now(), promise });
       void promise.catch(() => {
         if (entries.get(key)?.promise === promise) entries.delete(key);

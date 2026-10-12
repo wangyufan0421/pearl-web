@@ -1,85 +1,36 @@
-import { ArchiveNavigation } from "./ArchiveNavigation";
+import { SiteHeader } from "./SiteHeader";
+import { useLanguage, formatLocale } from "./i18n/Language";
+import { getCommunityDiscussionCards, originalXUrl } from "./data/communityDiscussion";
+import { useCommunityResource } from "./useCommunityResource";
 
-type SourceCard = {
-  sourceName: string;
-  handle: string;
-  avatar: string;
-  publishedAt: string;
-  href: string;
-  ariaLabel: string;
-  detailHref: string;
-  kind: "X ARTICLE";
-  title?: string;
-  translation: string;
-  engagement: { replies: number; reposts: number; likes: number; views: number };
-};
-
-const sourceCards: SourceCard[] = [
-  {
-    sourceName: "blocmates.",
-    handle: "@blocmates",
-    avatar: "https://pbs.twimg.com/profile_images/2016157466698944513/a7EkPcJa_normal.jpg",
-    publishedAt: "2026.10.09",
-    href: "https://x.com/blocmates/status/2108519545514410023?s=20",
-    ariaLabel: "查看 blocmates 原文",
-    detailHref: "/archive/community-discussion/wtf-is-pearl",
-    kind: "X ARTICLE",
-    title: "WTF Is Pearl? Why Is Everyone Comparing It to Nockchain?",
-    translation: "这是一篇把 Pearl 与 Nockchain 放进同一比较框架的长文：前者被描述为围绕 AI 矩阵计算与挖矿的网络，后者则被描述为更宽泛的可验证计算路径。这里保留文章入口与中文阅读线索，不复制原文全文。",
-    engagement: { replies: 28, reposts: 27, likes: 169, views: 28317 },
-  },
-];
-
-function formatCount(value: number) {
-  return new Intl.NumberFormat("zh-CN", { notation: "compact", maximumFractionDigits: 1 }).format(value);
-}
-
-function XSourceCard({ card }: { card: SourceCard }) {
-  return <article className="x-source-card" data-testid="x-source-card">
-    <a className="x-source-entry" href={card.detailHref} aria-label="进入 WTF Is Pearl? 讨论页">
-      <header className="x-source-head">
-        <img src={card.avatar} alt="" />
-        <div><strong>{card.sourceName} <i aria-label="已验证">✓</i></strong><span>{card.handle} · {card.publishedAt}</span></div>
-        <b aria-hidden="true">···</b>
-      </header>
-      <span className="x-source-kind">{card.kind}</span>
-      {card.title && <h3>{card.title}</h3>}
-      <p>{card.translation}</p>
-      <div className="x-source-actions" aria-label="原帖互动数据（抓取时）">
-        <span title="回复">◌ {formatCount(card.engagement.replies)}</span><span title="转发">↻ {formatCount(card.engagement.reposts)}</span><span title="喜欢">♡ {formatCount(card.engagement.likes)}</span><span title="浏览">▥ {formatCount(card.engagement.views)}</span>
-      </div>
-    </a>
-    <a href={card.href} target="_blank" rel="noreferrer" aria-label={card.ariaLabel}>查看原帖 <span aria-hidden="true">↗</span></a>
-  </article>;
+export function communityDate(value: string | null, unavailable: string) {
+  if (!value || !Number.isFinite(Date.parse(value))) return unavailable;
+  return new Intl.DateTimeFormat(formatLocale(), { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
 export default function CommunityDiscussionPage() {
+  const { t, href, language } = useLanguage();
+  const state = useCommunityResource(getCommunityDiscussionCards);
   return <main className="site-shell community-page">
-    <header className="topbar">
-      <a className="brand" href="/">Pearl <span>中文社区</span></a>
-      <nav aria-label="主导航"><a href="/overview">数据概览</a><a href="/chain">链上数据</a><a href="/valuation">数据汇总</a><ArchiveNavigation current /></nav>
-    </header>
-
-    <section className="community-hero" aria-labelledby="community-title">
-      <div>
-        <p className="eyebrow">ARCHIVE / COMMUNITY DEBATE</p>
-        <h1 id="community-title">Pearl社区讨论</h1>
-        <p>将社区的高热度文章整理为可回到原帖的讨论档案。原帖与中文转述并排；事实、观点与尚待验证的推断不混写。</p>
-      </div>
-      <aside className="community-reading-rule">
-        <span>READING RULE</span>
-        <strong>先看原帖，再读转述。</strong>
-        <p>社区帖呈现作者的判断，不构成协议状态、商业合作或投资结论。互动数为本次抓取时的快照。</p>
-      </aside>
+    <SiteHeader />
+    <section className="community-hero">
+      <div><p className="eyebrow">ARCHIVE / COMMUNITY DISCUSSIONS</p><h1>{t("Pearl社区讨论")}</h1><p>{t("阅读社区文章、推文及围绕它们展开的回应。原帖保留原文，网站界面随语言切换。")}</p></div>
+      <aside className="community-reading-rule"><span>READING RULE</span><strong>{t("先看原帖，再看讨论。")}</strong><p>{t("这里展示已归档的社区观点及来源，不将作者判断写成协议事实。")}</p><a className="community-admin-entry" href={href("/admin/community-discussions")}>{t("管理讨论")} ↗</a></aside>
     </section>
-
-    <section className="community-debate" aria-labelledby="debate-title">
-      <header className="community-section-head"><p className="eyebrow">01 / DISCUSSION FILE</p><h2 id="debate-title">WTF Is Pearl?</h2><p>blocmates 围绕 Pearl 与 Nockchain 所做的比较长文。文章中出现的不同论点与辩论，将在后续按原文章节分别收录，而不在此页另行拼接。</p></header>
-
+    <section className="community-debate" aria-label={t("讨论列表")} aria-busy={state.refreshing}>
+      {state.loading && <p className="community-status" role="status">{t("正在读取社区讨论…")}</p>}
+      {state.error && <div className="community-status" role="alert"><p>{t("社区讨论暂时无法读取，请稍后重试。")}</p><button type="button" disabled={state.refreshing} onClick={state.retry}>{t("重试")}</button></div>}
+      {state.data?.length === 0 && <p className="community-status">{t("目前还没有已发布的讨论。")}</p>}
       <div className="x-source-grid">
-        {sourceCards.map((card) => <XSourceCard key={card.href} card={card} />)}
+        {state.data?.map(card => <article className="x-source-card" key={card.slug}>
+          <header className="x-source-head">{card.primary.avatarUrl?.startsWith("https://") && <img src={card.primary.avatarUrl} alt="" />}<div><strong>{card.primary.author ?? card.primary.handle ?? t("作者未提供")}</strong><span>{card.primary.handle}</span></div></header>
+          <span className="x-source-kind">COMMUNITY ARCHIVE</span>
+          <h2><a href={href(`/archive/community-discussion/${card.slug}`)}>{card.title}</a></h2>
+          <p>{card.description ?? card.summary}</p>
+          <div className="x-source-actions"><span>{card.responseCount} {language === "en" && card.responseCount === 1 ? "response" : t("条回应")}</span><span>{t("最新收录：")} {communityDate(card.latestRecordedAt, t("时间未提供"))}</span></div>
+          {originalXUrl(card.primary.url) && <a href={originalXUrl(card.primary.url)} target="_blank" rel="noreferrer">{t("在 X 查看原文")} ↗</a>}
+        </article>)}
       </div>
     </section>
-
   </main>;
 }

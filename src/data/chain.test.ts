@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { getActivity, getHolders, getPools } from "./chain";
+import { getActivity, getHolders, getPools, getTxSizes } from "./chain";
 
 function response(body: unknown) {
   return { ok: true, json: async () => body } as Response;
 }
 
 describe("prlstats Chain API adapters", () => {
+  it("normalizes the Top 1% share from actual percentile pairs", async () => {
+    const result = await getTxSizes(async () => response({ range: "30d", unit: "PRL", basis: "gross", stats: { count: 42, median: 10, max: 1000, top_share: [[0.1, 0.2], [1, 0.7], [10, 0.9]] }, whales: [], daily: [] }));
+    expect(result.sourceKind).toBe("live"); expect(result.data.stats.top_share).toBe(0.7);
+  });
   it("reads a current pool row from the public endpoint", async () => {
     const fetcher = async () => response([{ id: "kryptex", name: "Kryptex Pool", fee_pct: 2, payout_scheme: "PPS+", blocks_24h: 221, share_24h: 53.3 }]);
 

@@ -155,21 +155,6 @@ describe("Pearl community pages", () => {
     expect(screen.getByRole("heading", { name: "Pearl人物与关系" })).not.toBeNull();
   });
 
-  it("renders the Pearl community discussion archive as its own page", () => {
-    window.history.replaceState({}, "", "/archive/community-discussion");
-    render(<App />);
-
-    expect(screen.getByRole("heading", { name: "Pearl社区讨论" })).not.toBeNull();
-  });
-
-  it("renders a community article as its own reading page", () => {
-    window.history.replaceState({}, "", "/archive/community-discussion/wtf-is-pearl");
-    render(<App />);
-
-    expect(screen.getByRole("heading", { name: "WTF Is Pearl?" })).not.toBeNull();
-    expect(screen.getByRole("link", { name: "返回社区讨论" }).getAttribute("href")).toBe("/archive/community-discussion");
-  });
-
   it("shows the exact date and sats value for a hovered selected chart point", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);

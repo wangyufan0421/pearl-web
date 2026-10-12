@@ -2,6 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { createRequestCache } from "./runtime";
 
 describe("createRequestCache", () => {
+  it("retains a successful snapshot if the saved-data API temporarily fails", async () => {
+    let now = 0; const cache = createRequestCache(() => now);
+    const saved = { data: { value: 42 }, sourceKind: "live", fetchedAt: new Date("2026-10-12T00:00:00Z") };
+    const loader = vi.fn().mockResolvedValueOnce(saved).mockResolvedValueOnce({ data: {}, sourceKind: "fallback", fetchedAt: new Date() });
+    await cache.get("network", 30_000, loader);
+    now = 30_000;
+    expect(await cache.get("network", 30_000, loader)).toMatchObject({ data: { value: 42 }, sourceKind: "live", fetchedAt: saved.fetchedAt, stale: true });
+  });
   it("shares an in-flight request and reuses it until its TTL expires", async () => {
     let now = 0;
     const cache = createRequestCache(() => now);
