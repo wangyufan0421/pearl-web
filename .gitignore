@@ -6,6 +6,7 @@ output/
 tmp-*.html
 .env
 .env.*
+!.env.example
 rendered_pearl_int_cn*/
 Pearl_INT_Whitepaper_figures/
 *.docx

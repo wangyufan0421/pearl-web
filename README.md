@@ -47,6 +47,18 @@ npm run build
 
 Lighter 的 K 线接口允许浏览器跨域读取，因此价格图不经 prlstats 代理；它展示的是永续合约价格，不等同于现货聚合参考价。
 
+## 社区讨论全文来源
+
+`/archive/community-discussion/wtf-is-pearl` 不使用会截断正文的 X iframe。浏览器请求同源的 `/api/community-discussion?discussion=wtf-is-pearl`，由服务端向 Twitter241 读取 Article 内容块与长帖全文，再返回给页面的滚动阅读框。
+
+本地开发可复制 [`.env.example`](./.env.example) 为 `.env.local`，然后在其中配置服务端变量：
+
+```powershell
+TWITTER241_API_KEY=你的-RapidAPI-密钥
+```
+
+部署到 Vercel 等支持 Serverless Function 的平台时，在项目环境变量中设置同名的 `TWITTER241_API_KEY`。不要使用 `VITE_` 前缀，密钥不会被打包进浏览器端，也不要提交 `.env.local` 到 Git。部署平台会自动识别 [`api/community-discussion.ts`](./api/community-discussion.ts) 作为服务端接口。
+
 ## 加载与刷新
 
 页面打开时会并行预取公开数据，并在浏览器内存中建立共享缓存；在数据总览、链上实况和 PRL 数据汇总之间切换时，会复用同一份结果，避免重复请求。

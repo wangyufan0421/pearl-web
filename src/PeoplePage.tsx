@@ -71,7 +71,7 @@ export default function PeoplePage() {
       <header><p className="eyebrow">03 / RELATIONSHIP RECORD</p><h2 id="connection-title">公开合作记录</h2><p>每一条都把记录能支持的结论与不能支持的外推并列呈现。</p></header>
       <div className="connection-grid">{connections.map((connection, index) => <article key={connection.title}>
         <div className="connection-number">0{index + 1}</div><span>{connection.label}</span><h3>{connection.title}</h3>
-        <div className="evidence-columns"><div><b>证明到哪</b><p>{connection.proves}</p></div><div><b>证不到哪</b><p>{connection.doesNotProve}</p></div></div>
+        <div className="evidence-columns"><div><b>最新证明</b><p>{connection.proves}</p></div><div><b>有待验证</b><p>{connection.doesNotProve}</p></div></div>
         <a href={connection.href} target="_blank" rel="noreferrer">查看记录 <i aria-hidden="true">↗</i></a>
       </article>)}</div>
     </section>

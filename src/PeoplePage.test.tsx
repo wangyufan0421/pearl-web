@@ -18,8 +18,8 @@ describe("PeoplePage", () => {
   it("keeps every relationship record explicit about evidentiary limits", () => {
     render(<PeoplePage />);
 
-    expect(screen.getAllByText("证明到哪")).toHaveLength(5);
-    expect(screen.getAllByText("证不到哪")).toHaveLength(5);
+    expect(screen.getAllByText("最新证明")).toHaveLength(5);
+    expect(screen.getAllByText("有待验证")).toHaveLength(5);
     expect(screen.queryByText("85%")).toBeNull();
   });
 });

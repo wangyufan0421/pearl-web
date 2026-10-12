@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Pearl 飞轮</title>
+  <desc id="desc">更多 AI 推理需求带来更多 GPU 计算接入 Pearl，继而增加参与网络和竞争 PRL 奖励的算力；网络安全性与 PRL 可用性增强，PRL 再作为购买或结算 AI 算力的媒介，推动新的需求。</desc>
+  <defs>
+    <linearGradient id="paper" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#fcfaf4"/><stop offset="1" stop-color="#f2f4f1"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-25%" width="140%" height="160%"><feDropShadow dx="0" dy="15" stdDeviation="16" flood-color="#1f292a" flood-opacity=".08"/></filter>
+    <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#5e8497"/></marker>
+    <marker id="arrowRose" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#a83f62"/></marker>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#paper)"/>
+  <g font-family="'Noto Sans SC','Microsoft YaHei',Arial,sans-serif">
+    <text x="112" y="112" fill="#a83f62" font-size="22" font-weight="700" letter-spacing="3">PEARL / ECONOMIC LOOP</text>
+    <text x="112" y="190" fill="#202728" font-family="'Noto Serif SC','Songti SC',serif" font-size="68" font-weight="600">Pearl 飞轮</text>
+    <text x="112" y="237" fill="#697174" font-size="26">从“算力获得 PRL”到“PRL 购买算力”的经济闭环设想。</text>
+
+    <path d="M433 366 C570 243 794 245 951 346" fill="none" stroke="#5e8497" stroke-width="5" marker-end="url(#arrowBlue)"/>
+    <path d="M1117 435 C1227 572 1138 739 966 789" fill="none" stroke="#a83f62" stroke-width="5" marker-end="url(#arrowRose)"/>
+    <path d="M815 849 C632 892 445 809 397 665" fill="none" stroke="#5e8497" stroke-width="5" marker-end="url(#arrowBlue)"/>
+    <path d="M334 543 C304 471 334 401 397 363" fill="none" stroke="#a83f62" stroke-width="5" marker-end="url(#arrowRose)"/>
+
+    <g filter="url(#shadow)">
+      <rect x="170" y="292" width="330" height="150" rx="28" fill="#fffefa" stroke="#d7ddda" stroke-width="2"/>
+      <text x="205" y="339" fill="#a83f62" font-size="17" font-weight="700" letter-spacing="1.5">01 / DEMAND</text>
+      <text x="205" y="386" fill="#202728" font-size="31" font-weight="700">更多 AI 推理需求</text>
+      <text x="205" y="417" fill="#697174" font-size="19">真实应用带来计算订单</text>
+    </g>
+
+    <g filter="url(#shadow)">
+      <rect x="910" y="292" width="390" height="150" rx="28" fill="#f5f9fa" stroke="#c9dade" stroke-width="2"/>
+      <text x="944" y="339" fill="#527588" font-size="17" font-weight="700" letter-spacing="1.5">02 / SUPPLY</text>
+      <text x="944" y="383" fill="#202728" font-size="29" font-weight="700">更多 GPU 计算</text>
+      <text x="944" y="416" fill="#202728" font-size="29" font-weight="700">接入 Pearl</text>
+    </g>
+
+    <g filter="url(#shadow)">
+      <rect x="950" y="681" width="390" height="160" rx="28" fill="#fffafa" stroke="#e7c9d3" stroke-width="2"/>
+      <text x="984" y="728" fill="#a83f62" font-size="17" font-weight="700" letter-spacing="1.5">03 / REWARD</text>
+      <text x="984" y="772" fill="#202728" font-size="28" font-weight="700">更多算力参与网络</text>
+      <text x="984" y="806" fill="#697174" font-size="21">并竞争 PRL 区块奖励</text>
+    </g>
+
+    <g filter="url(#shadow)">
+      <rect x="217" y="681" width="400" height="160" rx="28" fill="#f7f7ef" stroke="#ddd8bf" stroke-width="2"/>
+      <text x="252" y="728" fill="#a7812d" font-size="17" font-weight="700" letter-spacing="1.5">04 / CREDIBILITY</text>
+      <text x="252" y="772" fill="#202728" font-size="28" font-weight="700">网络安全性与</text>
+      <text x="252" y="806" fill="#202728" font-size="28" font-weight="700">PRL 可用性增强</text>
+    </g>
+
+    <g filter="url(#shadow)">
+      <circle cx="780" cy="548" r="179" fill="#fffefa" stroke="#a83f62" stroke-width="3"/>
+      <circle cx="780" cy="548" r="148" fill="#f7edf0"/>
+      <text x="780" y="511" text-anchor="middle" fill="#a83f62" font-size="18" font-weight="700" letter-spacing="2">05 / USE CASE</text>
+      <text x="780" y="558" text-anchor="middle" fill="#202728" font-family="'Noto Serif SC','Songti SC',serif" font-size="34" font-weight="700">PRL 成为购买或</text>
+      <text x="780" y="602" text-anchor="middle" fill="#202728" font-family="'Noto Serif SC','Songti SC',serif" font-size="34" font-weight="700">结算 AI 算力的媒介</text>
+    </g>
+
+    <rect x="112" y="925" width="1376" height="1" fill="#cfd5d2"/>
+    <text x="112" y="962" fill="#697174" font-size="20">边界提示：这是项目提出的经济闭环。其能否成立，取决于低开销接入、真实需求、可用支付体验与可观察的结算证据。</text>
+  </g>
+</svg>

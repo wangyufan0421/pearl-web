@@ -11,6 +11,8 @@ import CoreMechanismPage from "./CoreMechanismPage";
 import WhitepaperPage from "./WhitepaperPage";
 import ArticlesPage from "./ArticlesPage";
 import PeoplePage from "./PeoplePage";
+import CommunityDiscussionPage from "./CommunityDiscussionPage";
+import CommunityArticlePage from "./CommunityArticlePage";
 
 type Range = "7D" | "30D";
 const liveMetricIds = ["cost_allin", "txs", "onchain_volume", "funded_addresses", "top10_share", "fdv_vs_btc", "prl_btc", "marginal_cost", "crossover"] as const;
@@ -186,6 +188,8 @@ function App() {
   if (pathname === "/archive/whitepaper") return <WhitepaperPage />;
   if (pathname === "/archive/articles") return <ArticlesPage />;
   if (pathname === "/archive/people") return <PeoplePage />;
+  if (pathname === "/archive/community-discussion") return <CommunityDiscussionPage />;
+  if (pathname === "/archive/community-discussion/wtf-is-pearl") return <CommunityArticlePage />;
   return <ArchiveHomePage />;
 }
 

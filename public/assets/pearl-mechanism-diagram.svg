@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Pearl 核心机制：一次计算，两种结果</title>
+  <desc id="desc">AI 请求进入 GPU 矩阵运算，一路产生 AI 推理结果，另一路产生参与区块竞争的 PoUW 证明；只有网络接受后才可能获得 PRL。</desc>
+  <defs>
+    <linearGradient id="paper" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#fcfaf4"/><stop offset="1" stop-color="#f2f4f1"/></linearGradient>
+    <linearGradient id="gpu" x1="0" x2="1"><stop stop-color="#5e8497"/><stop offset="1" stop-color="#85a8b6"/></linearGradient>
+    <filter id="shadow" x="-15%" y="-20%" width="130%" height="150%"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#1f292a" flood-opacity=".09"/></filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#526062"/></marker>
+    <marker id="roseArrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="#a83f62"/></marker>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#paper)"/>
+  <g font-family="'Noto Sans SC','Microsoft YaHei',Arial,sans-serif">
+    <text x="112" y="112" fill="#a83f62" font-size="22" font-weight="700" letter-spacing="3">PEARL / 核心机制</text>
+    <text x="112" y="190" fill="#202728" font-family="'Noto Serif SC','Songti SC',serif" font-size="68" font-weight="600">一次计算，两种结果</text>
+    <text x="112" y="237" fill="#697174" font-size="26">Duplex Work：AI 推理照常交付，同时生成参与挖矿的可能性。</text>
+
+    <g filter="url(#shadow)">
+      <rect x="112" y="322" width="300" height="160" rx="28" fill="#fffefa" stroke="#d7ddda" stroke-width="2"/>
+      <circle cx="177" cy="402" r="31" fill="#f5e6ea"/>
+      <path d="M162 402h30M177 387v30" stroke="#a83f62" stroke-width="4" stroke-linecap="round"/>
+      <text x="227" y="393" fill="#697174" font-size="19" font-weight="700">01 / INPUT</text>
+      <text x="227" y="428" fill="#202728" font-size="32" font-weight="700">AI 请求</text>
+    </g>
+
+    <path d="M430 402H555" stroke="#526062" stroke-width="4" marker-end="url(#arrow)"/>
+    <text x="458" y="377" fill="#697174" font-size="18">调度至 GPU</text>
+
+    <g filter="url(#shadow)">
+      <rect x="575" y="298" width="450" height="208" rx="32" fill="url(#gpu)"/>
+      <rect x="603" y="327" width="394" height="150" rx="22" fill="#f8fbfa" fill-opacity=".18" stroke="#eff7f8" stroke-opacity=".65"/>
+      <text x="633" y="372" fill="#eef7f6" font-size="19" font-weight="700" letter-spacing="2">02 / GPU COMPUTE</text>
+      <text x="633" y="424" fill="#fffefa" font-family="'Noto Serif SC','Songti SC',serif" font-size="39" font-weight="700">矩阵运算（GEMM）</text>
+      <text x="633" y="458" fill="#ecf6f5" font-size="20">模型层把输入转化为大量矩阵计算</text>
+    </g>
+
+    <path d="M800 525V603H441V666" stroke="#526062" stroke-width="4" fill="none" marker-end="url(#arrow)"/>
+    <path d="M800 525V603H1160V666" stroke="#a83f62" stroke-width="4" fill="none" marker-end="url(#roseArrow)"/>
+    <circle cx="800" cy="603" r="9" fill="#202728"/>
+
+    <g filter="url(#shadow)">
+      <rect x="112" y="684" width="620" height="202" rx="30" fill="#fffefa" stroke="#d7ddda" stroke-width="2"/>
+      <rect x="144" y="716" width="122" height="36" rx="18" fill="#e8f0f1"/>
+      <text x="163" y="741" fill="#527588" font-size="17" font-weight="700">业务结果</text>
+      <text x="144" y="803" fill="#202728" font-size="37" font-weight="700">AI 推理结果</text>
+      <text x="144" y="844" fill="#697174" font-size="24">返回给用户或应用</text>
+      <path d="M646 786h42" stroke="#5e8497" stroke-width="4" marker-end="url(#arrow)"/>
+    </g>
+
+    <g filter="url(#shadow)">
+      <rect x="868" y="684" width="620" height="202" rx="30" fill="#fffafa" stroke="#e7c9d3" stroke-width="2"/>
+      <rect x="900" y="716" width="122" height="36" rx="18" fill="#f5e6ea"/>
+      <text x="919" y="741" fill="#a83f62" font-size="17" font-weight="700">共识竞争</text>
+      <text x="900" y="794" fill="#202728" font-size="33" font-weight="700">PoUW 证明</text>
+      <text x="900" y="831" fill="#697174" font-size="22">参与区块竞争</text>
+      <path d="M1168 736h174" stroke="#a83f62" stroke-width="4" marker-end="url(#roseArrow)"/>
+      <text x="1192" y="788" fill="#a83f62" font-size="23" font-weight="700">网络接受后</text>
+      <text x="1192" y="827" fill="#202728" font-size="27" font-weight="700">才可能获得 PRL</text>
+    </g>
+
+    <rect x="112" y="925" width="1376" height="1" fill="#cfd5d2"/>
+    <text x="112" y="962" fill="#697174" font-size="20">关键边界：一次 AI 请求不保证获得奖励；只有符合难度且被网络接受的有效证明，才可能对应区块奖励。</text>
+  </g>
+</svg>
