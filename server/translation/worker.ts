@@ -2,13 +2,13 @@ import { createSupabaseClient } from "../discussions/supabaseStore.js";
 import { createTranslationQueue } from "./queue.js";
 import { createTranslationStore } from "./store.js";
 import { createTranslator } from "./translator.js";
+import { translationConfiguration } from "./config.js";
 
 try {
-  const baseUrl = process.env.COMMUNITY_TRANSLATION_BASE_URL; const apiKey = process.env.COMMUNITY_TRANSLATION_API_KEY;
-  if (!baseUrl || !apiKey) throw new Error();
+  const configuration = translationConfiguration();
   const queue = createTranslationQueue({
     store: createTranslationStore(createSupabaseClient()),
-    translate: createTranslator({ baseUrl, apiKey, model: process.env.COMMUNITY_TRANSLATION_MODEL ?? "gpt-6-luna" }),
+    translate: createTranslator(configuration),
     onResult: (id, ok) => console.log(`${new Date().toISOString()} translation ${id} ${ok ? "progress saved" : "failed; originals retained; retry scheduled"}`),
   });
   queue.start(); console.log("Community translation worker started; originals are preserved");

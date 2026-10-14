@@ -124,12 +124,12 @@ sudo systemctl restart pearl-web pearl-collector
 
 ## 9. 社区中文译文
 
-在 `/etc/pearl/pearl.env` 中添加以下服务端配置（真实密钥通过私下配置交接，不进入 GitHub）：
+翻译 API 地址、密钥和模型已按项目所有者要求放在 `server/translation/config.ts`，随源码交付。部署时无需再填写翻译密钥；以下环境变量仅用于覆盖仓库默认配置，使用默认值时保持注释：
 
 ```dotenv
-COMMUNITY_TRANSLATION_BASE_URL=https://api.erisedai.com/v1
-COMMUNITY_TRANSLATION_API_KEY=your_translation_api_key
-COMMUNITY_TRANSLATION_MODEL=gpt-6-luna
+# COMMUNITY_TRANSLATION_BASE_URL=https://api.erisedai.com/v1
+# COMMUNITY_TRANSLATION_API_KEY=your_translation_api_key
+# COMMUNITY_TRANSLATION_MODEL=gpt-6-luna
 ```
 
 确认现有社区数据库迁移已经执行。无需额外建表，译文以 `translationZh` 附加在原始块的 JSON 中；英文 `text` 不被覆盖。中文界面优先使用完整译文，英文界面优先使用原文，并提供每条来源的切换按钮。

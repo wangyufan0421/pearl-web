@@ -14,7 +14,7 @@
 
 社区正文现在也支持单独保存的中文机器译文：英文原文始终保留，中文界面默认显示已完成的译文，英文界面默认显示原文，每条来源可单独切换。自动翻译由独立后台进程执行；长文分批处理，失败保留原文并重试。译文保存在既有 `discussion_sources.blocks` JSON 中的 `translationZh` 字段，无需新增 SQL 迁移。已收录来源会自动补译，刷新未变化的正文会复用译文。作者字段兼容 Twitter241 新的 user core/avatar 格式；页面始终显示 @账号，头像失败不影响身份与原帖链接。
 
-在服务端配置 `COMMUNITY_TRANSLATION_BASE_URL`、`COMMUNITY_TRANSLATION_API_KEY`、`COMMUNITY_TRANSLATION_MODEL` 后，`npm run dev` 和 `npm start` 会自动启动翻译进程。当前已验证的模型为 `gpt-6-luna`。正式部署可启用 `deploy/pearl-translation.service`，与行情采集器分别常驻运行。阅读页面不会发起翻译 API 请求；译文未经人工核对，页面会标明机器翻译。
+翻译 API 地址、密钥和默认模型按项目所有者要求写入服务端源码 `server/translation/config.ts`，随仓库交付。Supabase 配置可用时，`npm run dev` 和 `npm start` 会自动启动翻译进程，无需额外配置翻译密钥；可用 `COMMUNITY_TRANSLATION_BASE_URL`、`COMMUNITY_TRANSLATION_API_KEY`、`COMMUNITY_TRANSLATION_MODEL` 环境变量覆盖默认值。当前模型为 `gpt-6-luna`。正式部署可启用 `deploy/pearl-translation.service`，与行情采集器分别常驻运行。阅读页面不会发起翻译 API 请求；译文未经人工核对，页面会标明机器翻译。
 
 本项目当前依赖需要 Node 24.15 或更新版本（或满足依赖要求的 Node 22.22.2）。Vitest 只读取主目录 `src/` 与 `server/` 中的测试，避免读取 worktree 和备份。
 
