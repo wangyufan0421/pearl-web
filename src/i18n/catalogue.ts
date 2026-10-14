@@ -2,6 +2,11 @@
  * Keep full paragraphs intact; do not send community source posts here.
  */
 export const english: Record<string, string> = {
+  "阅读社区文章、推文及围绕它们展开的回应。原文保留，可切换查看自动生成的中文译文。": "Read community articles, posts and responses. Originals are preserved, with automatically generated Chinese translations available to view.",
+  "正文语言": "Source language", "英文原文": "English original", "中文译文": "Chinese translation", "可滚动的中文译文": "Scrollable Chinese translation",
+  "中文译文尚未完成，暂时显示英文原文。": "The Chinese translation is not complete yet. Showing the English original.",
+  "机器译文，仅供阅读参考；以原文为准。": "Machine translation for reference. The original source is authoritative.",
+  "账号未提供": "Account unavailable", "原帖 ID：": "Post ID: ",
   "输入管理员密钥后进入社区讨论管理。": "Enter the administrator key to access community discussion management.",
   "输入统一管理员密钥。退出或刷新后需要重新验证。": "Enter the shared administrator key. Verify again after logging out or reloading.",
   "数据采集时间：": "Collected at: ",

@@ -26,6 +26,13 @@ const author = {
 };
 
 describe("extractCommunityDiscussion", () => {
+  it("reads current Twitter241 user core and avatar fields", () => {
+    const result = extractCommunityDiscussion(normalized, rootTweet({ rest_id: normalized.xStatusId, core: { user_results: { result: { core: { name: "blocmates.", screen_name: "blocmates" }, avatar: { image_url: "https://pbs.twimg.com/profile_images/avatar.jpg" }, legacy: {} } } }, legacy: { full_text: "Original body" } }));
+    expect(result).toMatchObject({ author: "blocmates.", handle: "blocmates", avatarUrl: "https://pbs.twimg.com/profile_images/avatar.jpg" });
+  });
+  it("keeps the author's account from a meaningful source URL when user metadata is unavailable", () => {
+    expect(extractCommunityDiscussion(normalized, rootTweet({ rest_id: normalized.xStatusId, legacy: { full_text: "Original body" } })).handle).toBe("blocmates");
+  });
   it("uses the complete Article blocks and title", () => {
     const payload = rootTweet({
       rest_id: normalized.xStatusId,

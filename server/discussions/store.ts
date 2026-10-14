@@ -1,4 +1,5 @@
 import type { FetchStatus, SourceBlock, SourceRole, SourceType } from "./types.js";
+import { chineseSummary } from "../translation/content.js";
 
 export type DiscussionStatus = "draft" | "published";
 
@@ -42,6 +43,7 @@ export type PublicDiscussionCard = {
   slug: string;
   title: string;
   summary: string;
+  summaryZh?: string;
   description: string | null;
   primary: Pick<PublicSource, "xStatusId" | "url" | "author" | "handle" | "avatarUrl" | "publishedAt">;
   responseCount: number;
@@ -75,6 +77,7 @@ export interface DiscussionStore {
   insertSource(source: Omit<StoredSource, "id">): Promise<StoredSource>;
   createOrDuplicateResponse(source: ResponseInsertInput): Promise<ResponseInsertResult>;
   updateSource(source: StoredSource): Promise<StoredSource>;
+  updateSourceIfUnchanged(source: StoredSource, expectedAttemptedAt: string): Promise<StoredSource | undefined>;
   nextResponsePosition(discussionId: string): Promise<number>;
   listPublishedDiscussions(): Promise<PublicDiscussionCard[]>;
   getPublishedDiscussion(slug: string): Promise<PublicDiscussionDetail | undefined>;
@@ -168,6 +171,12 @@ export class InMemoryDiscussionStore implements DiscussionStore {
     return clone(source);
   }
 
+  async updateSourceIfUnchanged(source: StoredSource, expectedAttemptedAt: string) {
+    const latest = this.sources.get(source.id);
+    if (!latest || latest.lastAttemptedAt !== expectedAttemptedAt) return undefined;
+    return this.updateSource(source);
+  }
+
   async nextResponsePosition(discussionId: string) {
     const positions = [...this.sources.values()]
       .filter((source) => source.discussionId === discussionId && source.role === "response")
@@ -197,6 +206,7 @@ export class InMemoryDiscussionStore implements DiscussionStore {
       slug: discussion.slug,
       title: discussion.title,
       summary: primarySummary(primary),
+      ...(chineseSummary(primary.blocks) ? { summaryZh: chineseSummary(primary.blocks)! } : {}),
       description: discussion.description,
       primary: {
         xStatusId: primary.xStatusId,

@@ -147,20 +147,33 @@ export function createDiscussionService({ store, fetchSource, now = () => new Da
     const source = await store.getSourceForDiscussion(slug, statusId);
     if (!source) throw new Error(`Source not found in discussion: ${statusId}`);
     const attemptedAt = now();
+    const normalized = normalizeXStatusUrl(source.url);
+    let fetched: FetchedSource | undefined;
+    let fetchError: string | null = null;
     try {
-      const normalized = normalizeXStatusUrl(source.url);
-      const fetched = await fetchSource(normalized.url);
-      return store.updateSource(toSuccessfulSource({ ...fetched, xStatusId: source.xStatusId, url: normalized.url }, normalized.url, attemptedAt, source) as StoredSource);
+      fetched = await fetchSource(normalized.url);
     } catch (error) {
-      return store.updateSource({
-        ...source,
-        fetchStatus: "failed",
-        lastAttemptedAt: attemptedAt,
-        lastFetchError: error instanceof Error ? error.message : String(error),
-      });
+      fetchError = error instanceof Error ? error.message : String(error);
     }
+    for (let retry = 0; retry < 5; retry++) {
+      const latest = await store.getSourceForDiscussion(slug, statusId);
+      if (!latest) throw new Error(`Source not found in discussion: ${statusId}`);
+      const revision = new Date(Math.max(Date.parse(attemptedAt), Date.parse(latest.lastAttemptedAt) + 1)).toISOString();
+      let replacement: StoredSource;
+      if (fetched) {
+        const blocks = fetched.blocks.map(block => {
+          const previous = latest.blocks.find(saved => saved.id === block.id && saved.kind === block.kind && saved.text === block.text);
+          return previous?.translationZh ? { ...block, translationZh: previous.translationZh } : block;
+        });
+        replacement = toSuccessfulSource({ ...fetched, blocks, xStatusId: source.xStatusId, url: normalized.url }, normalized.url, revision, latest) as StoredSource;
+      } else {
+        replacement = { ...latest, fetchStatus: "failed", lastAttemptedAt: revision, lastFetchError: fetchError };
+      }
+      const saved = await store.updateSourceIfUnchanged(replacement, latest.lastAttemptedAt);
+      if (saved) return saved;
+    }
+    throw new Error("Source changed during refresh; please retry");
   }
-
   return {
     createDiscussion,
     addSources,

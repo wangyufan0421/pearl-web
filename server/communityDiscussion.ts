@@ -103,7 +103,9 @@ export function extractCommunityDiscussion(
   if (!tweet) throw new Error(`Could not find X status ${normalized.xStatusId} in the response`);
 
   const legacy = readPath(tweet, ["legacy"]);
-  const userLegacy = readPath(tweet, ["core", "user_results", "result", "legacy"]);
+  const userResult = readPath(tweet, ["core", "user_results", "result"]);
+  const userLegacy = readPath(userResult, ["legacy"]);
+  const userCore = readPath(userResult, ["core"]);
   const article = articleBlocks(tweet);
   const noteText = readString(readPath(tweet, ["note_tweet", "note_tweet_results", "result", "text"]));
   const legacyText = readString(isRecord(legacy) ? legacy.full_text : undefined);
@@ -123,12 +125,16 @@ export function extractCommunityDiscussion(
   return {
     xStatusId: normalized.xStatusId,
     url: normalized.url,
-    author: readString(isRecord(userLegacy) ? userLegacy.name : undefined) ?? fallback.author ?? null,
-    handle: readString(isRecord(userLegacy) ? userLegacy.screen_name : undefined) ?? fallback.handle ?? null,
+    author: readString(readPath(userCore, ["name"])) ?? readString(readPath(userLegacy, ["name"])) ?? fallback.author ?? null,
+    handle: readString(readPath(userCore, ["screen_name"])) ?? readString(readPath(userLegacy, ["screen_name"])) ?? fallback.handle ?? accountFromUrl(normalized.url),
     avatarUrl:
-      readString(isRecord(userLegacy) ? userLegacy.profile_image_url_https : undefined) ?? fallback.avatarUrl ?? null,
+      readString(readPath(userResult, ["avatar", "image_url"])) ?? readString(readPath(userLegacy, ["profile_image_url_https"])) ?? fallback.avatarUrl ?? null,
     publishedAt: readString(isRecord(legacy) ? legacy.created_at : undefined) ?? fallback.publishedAt ?? null,
     fetchedAt: fetchedAt(clock),
     ...content,
   };
+}
+
+function accountFromUrl(value: string): string | null {
+  try { const account = new URL(value).pathname.split("/")[1]; return /^[a-zA-Z0-9_]{1,15}$/.test(account) && account.toLowerCase() !== "i" ? account : null; } catch { return null; }
 }

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { chineseSummary } from "../translation/content.js";
 import type {
   CreateDiscussionWithPrimaryInput,
   DiscussionRecord,
@@ -143,6 +144,7 @@ function cardFor(discussion: DiscussionRecord, sources: StoredSource[]): PublicD
     slug: discussion.slug,
     title: discussion.title,
     summary: primarySummary(primary),
+    ...(chineseSummary(primary.blocks) ? { summaryZh: chineseSummary(primary.blocks)! } : {}),
     description: discussion.description,
     primary: {
       xStatusId: primary.xStatusId,
@@ -223,6 +225,10 @@ export function createSupabaseDiscussionStore(client: unknown): DiscussionStore 
     async updateSource(source) {
       const row = await rows<Record<string, unknown>>(database.from("discussion_sources").update(sourceToRow(source)).eq("id", source.id).select("*").single());
       return mapDatabaseRow("source", row);
+    },
+    async updateSourceIfUnchanged(source, expectedAttemptedAt) {
+      const row = await rows<Record<string, unknown> | null>(database.from("discussion_sources").update(sourceToRow(source)).eq("id", source.id).eq("last_attempted_at", expectedAttemptedAt).select("*").maybeSingle());
+      return row ? mapDatabaseRow("source", row) : undefined;
     },
     async nextResponsePosition(discussionId) {
       const sourceRows = await rows<Array<{ position: number }>>(database.from("discussion_sources").select("position").eq("discussion_id", discussionId).eq("role", "response"));

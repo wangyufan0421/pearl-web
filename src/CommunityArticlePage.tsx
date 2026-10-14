@@ -1,26 +1,34 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { SiteHeader } from "./SiteHeader";
 import { useLanguage } from "./i18n/Language";
 import { getCommunityDiscussion, originalXUrl, type CommunitySource } from "./data/communityDiscussion";
 import { useCommunityResource } from "./useCommunityResource";
 import { communityDate } from "./CommunityDiscussionPage";
+import { CommunityAvatar, CommunityAuthorInfo } from "./CommunityIdentity";
+import { hasCompleteChineseTranslation, isEnglishBlock } from "../server/translation/content.js";
 
 function SourceMessage({ source, index }: { source: CommunitySource; index: number }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const [view, setView] = useState<"original" | "zh" | null>(null);
+  const complete = hasCompleteChineseTranslation(source.blocks);
+  const hasEnglish = source.blocks.some(isEnglishBlock);
+  const chinese = complete && (view ?? (language === "zh" ? "zh" : "original")) === "zh";
   const side = index % 2 === 0 ? "left" : "right";
-  const author = source.author ?? source.handle ?? t("作者未提供");
-  const avatar = source.avatarUrl?.startsWith("https://") ? <img className="community-dialogue-avatar" src={source.avatarUrl} alt={author} /> : <span className="community-avatar-placeholder" aria-hidden="true">{author.slice(0, 1)}</span>;
+  const avatar = <CommunityAvatar source={source} />;
   const url = originalXUrl(source.url);
   return <article className={`community-dialogue-message community-dialogue-${side} ${source.role === "primary" ? "community-dialogue-primary" : ""}`} data-testid="community-dialogue-message" data-side={side}>
     {side === "left" && avatar}
     <div className="community-dialogue-bubble">
-      <header><span>{source.role === "primary" ? t("原文章") : t("社区回应")}</span><strong>{author}</strong><small>{source.handle}</small></header>
+      <header><span>{source.role === "primary" ? t("原文章") : t("社区回应")}</span><CommunityAuthorInfo source={source} /></header>
       <p className="community-source-date">{t("发布时间：")} {communityDate(source.publishedAt, t("时间未提供"))}</p>
       {source.fetchStatus === "failed" && <p className="community-source-status">{source.blocks.length ? t("暂时无法更新，正在展示已保存的原文。") : t("此来源暂无正文，请查看原帖。")}</p>}
-      <div className="community-dialogue-scroll" tabIndex={0} role="region" aria-label={t("可滚动的原帖正文")}>
+      {hasEnglish && <div className="community-translation-controls" role="group" aria-label={t("正文语言")}><button type="button" aria-pressed={!chinese} onClick={() => setView("original")}>{t("英文原文")}</button><button type="button" disabled={!complete} aria-pressed={chinese} onClick={() => setView("zh")}>{t("中文译文")}</button></div>}
+      {hasEnglish && !complete && <p className="community-source-status">{t("中文译文尚未完成，暂时显示英文原文。")}</p>}
+      {chinese && <p className="community-source-status">{t("机器译文，仅供阅读参考；以原文为准。")}</p>}
+      <div className="community-dialogue-scroll" tabIndex={0} role="region" aria-label={chinese ? t("可滚动的中文译文") : t("可滚动的原帖正文")}>
         <div className="community-source-body">
           {/* Original source blocks deliberately bypass t(): their language and full text are preserved. */}
-          {source.blocks.map(block => block.kind === "heading" ? <h2 key={block.id}>{block.text}</h2> : block.kind === "quote" ? <blockquote key={block.id}>{block.text}</blockquote> : <p key={block.id}>{block.text}</p>)}
+          {source.blocks.map(block => { const text = chinese ? block.translationZh ?? block.text : block.text; return block.kind === "heading" ? <h2 key={block.id}>{text}</h2> : block.kind === "quote" ? <blockquote key={block.id}>{text}</blockquote> : <p key={block.id}>{text}</p>; })}
           {!source.blocks.length && source.fetchStatus !== "failed" && <p>{t("此来源暂无正文，请查看原帖。")}</p>}
         </div>
       </div>

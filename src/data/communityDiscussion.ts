@@ -8,13 +8,14 @@ const identitySchema = z.object({
 const sourceSchema = identitySchema.extend({
   role: z.enum(["primary", "response"]),
   fetchedAt: z.string().nullable(), lastAttemptedAt: z.string(),
-  blocks: z.array(z.object({ id: z.string(), kind: z.enum(["heading", "quote", "paragraph"]), text: z.string() })),
+  blocks: z.array(z.object({ id: z.string(), kind: z.enum(["heading", "quote", "paragraph"]), text: z.string(), translationZh: z.string().optional() })),
   sourceType: z.enum(["tweet", "noteTweet", "article"]).nullable(),
   position: z.number().int().nonnegative(), fetchStatus: z.enum(["success", "failed"]),
   lastFetchError: z.string().nullable().optional(),
 });
 const cardSchema = z.object({
   slug: slugSchema, title: z.string(), summary: z.string(), description: z.string().nullable(),
+  summaryZh: z.string().optional(),
   primary: identitySchema, responseCount: z.number().int().nonnegative(),
   latestRecordedAt: z.string(), detailUrl: z.string(),
 });

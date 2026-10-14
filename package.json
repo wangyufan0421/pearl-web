@@ -11,6 +11,7 @@
     "start": "node scripts/run-services.mjs",
     "start:web": "node --env-file-if-exists=.env --env-file-if-exists=.env.local dist-server/main.js",
     "collect": "node --env-file-if-exists=.env --env-file-if-exists=.env.local dist-server/market/worker.js",
+    "translate": "node --env-file-if-exists=.env --env-file-if-exists=.env.local dist-server/translation/worker.js",
     "test": "vitest run"
   },
   "dependencies": {

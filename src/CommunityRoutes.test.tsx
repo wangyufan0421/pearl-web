@@ -20,6 +20,15 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); window.history.replaceState({}, "", "/"); localStorage.clear(); });
 
 describe("persistent community frontend", () => {
+  it("defaults to saved Chinese translations in Chinese mode and can show the untouched original", async () => {
+    vi.mocked(fetch).mockImplementation(async input => input === `/api/community-discussion?slug=${card.slug}` ? { ok: true, json: async () => ({ ...detail, sources: [{ ...primary, blocks: [{ id: "main", kind: "paragraph", text: "Complete English original.", translationZh: "完整的中文译文。" }] }] }) } as Response : { ok: false } as Response);
+    window.history.replaceState({}, "", `/archive/community-discussion/${card.slug}`);
+    render(<App />);
+    expect(await screen.findByText("完整的中文译文。")).toBeInTheDocument();
+    expect(screen.queryByText("Complete English original.")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "英文原文" }));
+    expect(screen.getByText("Complete English original.")).toBeInTheDocument();
+  });
   it.each(["/archive/community-discussion", "/en/archive/community-discussion"])("opens the actual list at %s and links API-provided discussions", async path => {
     window.history.replaceState({}, "", path);
     render(<App />);

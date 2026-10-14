@@ -21,5 +21,3 @@ _verify_*.py
 _inspect_*.py
 tmp-articles-b64.txt
 _check_*.py
-appdata
-appdata-space-scan.json

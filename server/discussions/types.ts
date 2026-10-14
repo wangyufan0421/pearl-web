@@ -2,6 +2,7 @@ export type SourceBlock = {
   id: string;
   kind: "heading" | "quote" | "paragraph";
   text: string;
+  translationZh?: string;
 };
 
 export type SourceType = "tweet" | "noteTweet" | "article";

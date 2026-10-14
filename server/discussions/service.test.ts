@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { FetchedSource } from "./types";
 import { InMemoryDiscussionStore } from "./store";
 import { createDiscussionService } from "./service";
@@ -46,10 +46,44 @@ function setup() {
     fetchSource: (url) => fetcher.fetch(url),
     now: () => `2026-01-03T00:00:0${tick++}.000Z`,
   });
-  return { fetcher, service };
+  return { fetcher, service, store };
 }
 
 describe("discussion service", () => {
+  it("retries the merge when translation is saved between reading and committing a refresh", async () => {
+    const { fetcher, service, store } = setup();
+    const primary = source("100"); fetcher.items.set("100", primary);
+    const created = await service.createDiscussion({ primaryUrl: primary.url });
+    const commit = store.updateSourceIfUnchanged.bind(store);
+    vi.spyOn(store, "updateSourceIfUnchanged").mockImplementationOnce(async (replacement, expected) => {
+      const latest = (await store.getSourceByStatusId("100"))!;
+      await store.updateSource({ ...latest, lastAttemptedAt: "2026-01-03T00:00:00.002Z", blocks: latest.blocks.map(block => ({ ...block, translationZh: "提交期间保存的译文。" })) });
+      return commit(replacement, expected);
+    });
+    expect((await service.refreshSource(created.discussion.slug, "100")).blocks[0].translationZh).toBe("提交期间保存的译文。");
+    expect(store.updateSourceIfUnchanged).toHaveBeenCalledTimes(2);
+  });
+  it.each([false, true])("preserves translations saved during an upstream refresh (success=%s)", async success => {
+    const { fetcher, service, store } = setup();
+    const primary = source("100"); fetcher.items.set("100", primary);
+    const created = await service.createDiscussion({ primaryUrl: primary.url });
+    vi.spyOn(fetcher, "fetch").mockImplementation(async () => {
+      const latest = (await store.getSourceByStatusId("100"))!;
+      await store.updateSource({ ...latest, lastAttemptedAt: "2026-01-03T00:00:00.001Z", blocks: latest.blocks.map(block => ({ ...block, translationZh: "并发保存的译文。" })) });
+      if (!success) throw new Error("offline"); return primary;
+    });
+    expect((await service.refreshSource(created.discussion.slug, "100")).blocks[0].translationZh).toBe("并发保存的译文。");
+  });
+  it("retains translations of unchanged blocks when refreshing a source", async () => {
+    const { fetcher, service } = setup();
+    const primary = source("100", { blocks: [{ id: "a", kind: "paragraph", text: "English original", translationZh: "中文译文" }] });
+    fetcher.items.set("100", primary);
+    const created = await service.createDiscussion({ primaryUrl: primary.url });
+    fetcher.items.set("100", { ...primary, blocks: [{ id: "a", kind: "paragraph", text: "English original" }] });
+    expect((await service.refreshSource(created.discussion.slug, "100")).blocks[0].translationZh).toBe("中文译文");
+    fetcher.items.set("100", { ...primary, blocks: [{ id: "a", kind: "paragraph", text: "Changed English original" }] });
+    expect((await service.refreshSource(created.discussion.slug, "100")).blocks[0].translationZh).toBeUndefined();
+  });
   it("creates a published discussion with its complete primary snapshot", async () => {
     const { fetcher, service } = setup();
     const primary = source("100");

@@ -20,4 +20,5 @@ function launch(file, args = []) {
 }
 launch(development ? "node_modules/vite/bin/vite.js" : "dist-server/main.js", development ? ["--host", "127.0.0.1", "--port", "5173", "--strictPort"] : []);
 launch("dist-server/market/worker.js");
+if (process.env.COMMUNITY_TRANSLATION_BASE_URL && process.env.COMMUNITY_TRANSLATION_API_KEY && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) launch("dist-server/translation/worker.js");
 process.once("SIGINT", () => shutdown(0)); process.once("SIGTERM", () => shutdown(0));

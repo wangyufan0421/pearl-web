@@ -120,4 +120,29 @@ sudo systemctl restart pearl-web pearl-collector
 
 重启不删除 Supabase 快照。采集中断或云服务器长期离线时，页面会标注旧数据，直到后台重新成功采集。
 
+## 9. 社区中文译文
+
+在 `/etc/pearl/pearl.env` 中添加以下服务端配置（真实密钥通过私下配置交接，不进入 GitHub）：
+
+```dotenv
+COMMUNITY_TRANSLATION_BASE_URL=https://api.erisedai.com/v1
+COMMUNITY_TRANSLATION_API_KEY=your_translation_api_key
+COMMUNITY_TRANSLATION_MODEL=gpt-6-luna
+```
+
+确认现有社区数据库迁移已经执行。无需额外建表，译文以 `translationZh` 附加在原始块的 JSON 中；英文 `text` 不被覆盖。中文界面优先使用完整译文，英文界面优先使用原文，并提供每条来源的切换按钮。
+
+调整 `deploy/pearl-translation.service` 的 Node 路径、用户与目录后启用：
+
+```sh
+sudo cp deploy/pearl-translation.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now pearl-translation
+sudo journalctl -u pearl-translation -n 40 --no-pager
+```
+
+只运行一个翻译进程。它会扫描已保存的来源，自动处理现有和新增英文正文，保存每批进度，失败后延迟重试，已完成的块不会重复请求。原文版本更新时会放弃旧版本的写入，未变化的正文块保留已有译文。长文完成时间受篇幅、服务速度与排队情况影响，录入接口先保存原文，不等待翻译。
+
+正常日志为 `translation <source-id> progress saved`。读取译文无需翻译 API 密钥；普通访客不会触发付费翻译。缺少翻译配置时，网站继续显示原文，手动运行 `npm run translate` 只用于排查，不能与已运行的 systemd 翻译服务并行。
+
 实现参考：[Node 环境变量加载](https://nodejs.org/api/environment_variables.html)、[Supabase 自定义 fetch 配置](https://supabase.com/docs/reference/javascript/initializing)。
