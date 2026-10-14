@@ -24,6 +24,7 @@ type Query = PromiseLike<QueryResult> & {
   select(columns: string): Query;
   insert(values: Record<string, unknown>): Query;
   update(values: Record<string, unknown>): Query;
+  delete(): Query;
   eq(column: string, value: unknown): Query;
   in(column: string, values: unknown[]): Query;
   maybeSingle(): Query;
@@ -180,6 +181,29 @@ export function createSupabaseDiscussionStore(client: unknown): DiscussionStore 
   }
 
   return {
+    async listAdminDiscussions() {
+      const discussionRows = await rows<Record<string, unknown>[]>(database.from("discussions").select("*"));
+      const discussions = discussionRows.map(row => mapDatabaseRow("discussion", row));
+      if (!discussions.length) return [];
+      const sourceRows = await rows<Record<string, unknown>[]>(database.from("discussion_sources").select("*").in("discussion_id", discussions.map(discussion => discussion.id)));
+      const sources = sourceRows.map(row => mapDatabaseRow("source", row));
+      return discussions.map(discussion => ({ ...cardFor(discussion, sources.filter(source => source.discussionId === discussion.id)), status: discussion.status }));
+    },
+    async getAdminDiscussion(slug) {
+      const discussion = await getDiscussionBySlug(slug);
+      if (!discussion) return undefined;
+      return { slug, title: discussion.title, description: discussion.description, status: discussion.status, sources: orderedSources(await sourcesForDiscussion(discussion.id)).map(publicSource) };
+    },
+    async setDiscussionStatus(slug, status) {
+      const changed = await rows<Array<{ id: string }>>(database.from("discussions").update({ status, updated_at: new Date().toISOString() }).eq("slug", slug).select("id"));
+      if (!changed.length) throw new Error("Discussion not found");
+    },
+    async deleteDiscussion(slug) {
+      // Existing FK cascade deletes the primary and responses in this SQL transaction.
+      const deleted = await rows<Array<{ id: string }>>(database.from("discussions").delete().eq("slug", slug).select("id"));
+      if (!deleted.length) throw new Error("Discussion not found");
+    },
+
     async createDiscussionWithPrimary(input: CreateDiscussionWithPrimaryInput) {
       const rpcResult = await rows<string>(database.rpc("create_discussion_with_primary", {
         input: {

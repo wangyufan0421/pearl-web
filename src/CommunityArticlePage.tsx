@@ -7,7 +7,7 @@ import { communityDate } from "./CommunityDiscussionPage";
 import { CommunityAvatar, CommunityAuthorInfo } from "./CommunityIdentity";
 import { hasCompleteChineseTranslation, isEnglishBlock } from "../server/translation/content.js";
 
-function SourceMessage({ source, index }: { source: CommunitySource; index: number }) {
+export function SourceMessage({ source, index }: { source: CommunitySource; index: number }) {
   const { t, language } = useLanguage();
   const [view, setView] = useState<"original" | "zh" | null>(null);
   const complete = hasCompleteChineseTranslation(source.blocks);

@@ -50,6 +50,26 @@ function setup() {
 }
 
 describe("discussion service", () => {
+  it("hides, restores and permanently deletes a whole discussion while retaining translations until deletion", async () => {
+    const { fetcher, service, store } = setup();
+    const primary = source("100", { blocks: [{ id: "a", kind: "paragraph", text: "English", translationZh: "中文" }] });
+    fetcher.items.set("100", primary); fetcher.items.set("200", source("200"));
+    const created = await service.createDiscussion({ primaryUrl: primary.url });
+    const slug = created.discussion.slug;
+    await service.addSources(slug, [source("200").url]);
+    await service.manageDiscussion(slug, "hide");
+    expect(await service.listPublishedDiscussions()).toEqual([]);
+    expect(await service.getPublishedDiscussion(slug)).toBeUndefined();
+    expect((await service.listAdminDiscussions())[0]).toMatchObject({ slug, status: "draft", responseCount: 1 });
+    expect((await service.getAdminDiscussion(slug))?.sources[0].blocks[0].translationZh).toBe("中文");
+    await service.manageDiscussion(slug, "restore");
+    expect((await service.getPublishedDiscussion(slug))?.sources).toHaveLength(2);
+    await service.manageDiscussion(slug, "delete");
+    expect(await service.getAdminDiscussion(slug)).toBeUndefined();
+    expect(await store.getSourceByStatusId("100")).toBeUndefined();
+    expect(await store.getSourceByStatusId("200")).toBeUndefined();
+    expect(await service.listAdminDiscussions()).toEqual([]);
+  });
   it("retries the merge when translation is saved between reading and committing a refresh", async () => {
     const { fetcher, service, store } = setup();
     const primary = source("100"); fetcher.items.set("100", primary);

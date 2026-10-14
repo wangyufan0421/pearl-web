@@ -7,7 +7,7 @@ export function createTranslationStore(client: SupabaseClient): TranslationStore
     async list() {
       const sources = [];
       for (let offset = 0; ; offset += 100) {
-        const { data, error } = await client.from("discussion_sources").select("id,blocks,fetched_at").not("fetched_at", "is", null).order("id").range(offset, offset + 99);
+        const { data, error } = await client.from("discussion_sources").select("id,blocks,fetched_at,discussions!discussion_sources_discussion_id_fkey!inner(status)").eq("discussions.status", "published").not("fetched_at", "is", null).order("id").range(offset, offset + 99);
         if (error) throw new Error("Translation storage unavailable");
         for (const row of data ?? []) { const parsed = blocksSchema.safeParse(row.blocks); if (parsed.success) sources.push({ id: row.id as string, fetchedAt: row.fetched_at as string, blocks: parsed.data }); }
         if (!data || data.length < 100) break;

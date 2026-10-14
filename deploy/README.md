@@ -72,6 +72,8 @@ sudo systemctl status pearl-web pearl-collector
 
 Node 服务会提供 `/en/overview` 等深层路径的 SPA 回退、白皮书 PDF、社区公共读取与已鉴权的管理员写入接口。
 
+社区后台支持卡片首页、`/admin/community-discussions/new` 新建页和 `/admin/community-discussions/:slug` 管理页，英文入口加 `/en`。卡片可隐藏、恢复或永久删除讨论；此次功能复用已有数据库状态和级联删除，无需新 SQL 迁移。更新前端构建和编译服务端后重启网站及翻译服务；不要只替换静态前端。操作说明见 `docs/community-admin-guide.md`。
+
 ## 5. 验证无人访问也在更新
 
 先检查日志：

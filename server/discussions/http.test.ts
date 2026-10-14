@@ -27,6 +27,17 @@ function handlers(overrides: Partial<DiscussionService> = {}, compare?: (left: U
 }
 
 describe("community discussion HTTP handlers", () => {
+  it("requires authentication for hidden reads and lifecycle actions and matching confirmation for deletion", async () => {
+    const manageDiscussion = vi.fn().mockResolvedValue(undefined);
+    const api = handlers({ manageDiscussion, listAdminDiscussions: vi.fn().mockResolvedValue([]) });
+    expect((await api.handleAdminList(request())).status).toBe(401);
+    expect((await api.handleAdminDetail(request(undefined, undefined, { slug: "debate" }))).status).toBe(401);
+    expect((await api.handleManageDiscussion(request({ action: "delete", confirmation: "debate" }, undefined, { slug: "debate" }))).status).toBe(401);
+    expect((await api.handleManageDiscussion(request({ action: "delete" }, { authorization: "Bearer test-token" }, { slug: "debate" }))).status).toBe(400);
+    expect(manageDiscussion).not.toHaveBeenCalled();
+    expect((await api.handleManageDiscussion(request({ action: "delete", confirmation: "debate" }, { authorization: "Bearer test-token" }, { slug: "debate" }))).status).toBe(200);
+    expect(manageDiscussion).toHaveBeenCalledWith("debate", "delete");
+  });
   it("verifies admin credentials without reading cloud data or exposing the token", async () => {
     const { handleVerifyAdmin, service } = handlers();
     expect(await handleVerifyAdmin(request())).toEqual({ status: 401, body: { error: "unauthorized" } });

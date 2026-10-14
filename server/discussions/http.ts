@@ -82,6 +82,30 @@ function publicDetail(detail: PublicDiscussionDetail) {
 
 export function createDiscussionHttpHandlers({ service, adminToken, compare = timingSafeEqual }: Dependencies) {
   return {
+    async handleAdminList(request: DiscussionHttpRequest): Promise<DiscussionHttpResponse> {
+      const failure = protectedRoute(request, adminToken, compare);
+      if (failure) return failure;
+      try { return { status: 200, body: { discussions: await service.listAdminDiscussions() } }; } catch (cause) { return mapFailure(cause); }
+    },
+    async handleAdminDetail(request: DiscussionHttpRequest): Promise<DiscussionHttpResponse> {
+      const failure = protectedRoute(request, adminToken, compare);
+      if (failure) return failure;
+      const parsed = slug.safeParse(request.params?.slug);
+      if (!parsed.success) return error("invalid_request", 400);
+      try {
+        const detail = await service.getAdminDiscussion(parsed.data);
+        return detail ? { status: 200, body: { ...publicDetail(detail), status: detail.status } } : error("not_found", 404);
+      } catch (cause) { return mapFailure(cause); }
+    },
+    async handleManageDiscussion(request: DiscussionHttpRequest): Promise<DiscussionHttpResponse> {
+      const failure = protectedRoute(request, adminToken, compare);
+      if (failure) return failure;
+      const parsedSlug = slug.safeParse(request.params?.slug);
+      const parsed = z.object({ action: z.enum(["hide", "restore", "delete"]), confirmation: z.string().optional() }).strict().safeParse(request.body);
+      if (!parsedSlug.success || !parsed.success || (parsed.data.action === "delete" && parsed.data.confirmation !== parsedSlug.data)) return error("invalid_request", 400);
+      try { await service.manageDiscussion(parsedSlug.data, parsed.data.action); return { status: 200, body: { completed: true } }; } catch (cause) { return mapFailure(cause); }
+    },
+
     async handleVerifyAdmin(request: DiscussionHttpRequest): Promise<DiscussionHttpResponse> {
       const failure = protectedRoute(request, adminToken, compare);
       return failure ?? { status: 200, body: { authorized: true } };

@@ -17,6 +17,9 @@ export type CreateDiscussionInput = {
 };
 
 export type DiscussionService = {
+  listAdminDiscussions: DiscussionStore["listAdminDiscussions"];
+  getAdminDiscussion: DiscussionStore["getAdminDiscussion"];
+  manageDiscussion(slug: string, action: "hide" | "restore" | "delete"): Promise<void>;
   createDiscussion(input: CreateDiscussionInput): Promise<{ discussion: Awaited<ReturnType<DiscussionStore["createDiscussionWithPrimary"]>>["discussion"]; primary: StoredSource }>;
   addSources(slug: string, urls: string[]): Promise<SourceWriteOutcome[]>;
   refreshSource(slug: string, statusId: string): Promise<StoredSource>;
@@ -75,6 +78,7 @@ function toSuccessfulSource(source: FetchedSource, url: string, attemptedAt: str
 export function createDiscussionService({ store, fetchSource, now = () => new Date().toISOString() }: Options): DiscussionService {
   async function availableSlug(seed: string): Promise<string> {
     let candidate = slugify(seed);
+    if (candidate === "new") candidate = "new-discussion";
     let suffix = 2;
     while (await store.getDiscussionBySlug(candidate)) candidate = `${slugify(seed)}-${suffix++}`;
     return candidate;
@@ -175,6 +179,9 @@ export function createDiscussionService({ store, fetchSource, now = () => new Da
     throw new Error("Source changed during refresh; please retry");
   }
   return {
+    listAdminDiscussions: () => store.listAdminDiscussions(),
+    getAdminDiscussion: slug => store.getAdminDiscussion(slug),
+    manageDiscussion: (slug, action) => action === "delete" ? store.deleteDiscussion(slug) : store.setDiscussionStatus(slug, action === "hide" ? "draft" : "published"),
     createDiscussion,
     addSources,
     refreshSource,

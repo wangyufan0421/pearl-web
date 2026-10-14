@@ -1,5 +1,21 @@
 import { z } from "zod";
 import { normalizeXStatusUrl } from "../../server/discussions/urls";
+import { cardSchema, discussionSchema } from "./communityDiscussion";
+
+const adminCardSchema = cardSchema.extend({ status: z.enum(["draft", "published"]) });
+const adminDetailSchema = discussionSchema.extend({ status: z.enum(["draft", "published"]) });
+export type AdminDiscussionCard = z.infer<typeof adminCardSchema>;
+export type AdminDiscussion = z.infer<typeof adminDetailSchema>;
+export type DiscussionAction = "hide" | "restore" | "delete";
+export async function getAdminCards(token: string, signal?: AbortSignal) {
+  return (await request("/api/admin/community-discussions/list/all", token, z.object({ discussions: z.array(adminCardSchema) }), undefined, signal)).discussions;
+}
+export function getAdminDetail(token: string, slug: string, signal?: AbortSignal) {
+  return request(`/api/admin/community-discussions/${encodeURIComponent(slug)}`, token, adminDetailSchema, undefined, signal);
+}
+export function manageDiscussion(token: string, slug: string, action: DiscussionAction, confirmation?: string) {
+  return request(`/api/admin/community-discussions/${encodeURIComponent(slug)}/manage`, token, z.object({ completed: z.literal(true) }), { action, ...(confirmation === undefined ? {} : { confirmation }) });
+}
 
 const slugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const createdSchema = z.object({ discussion: z.object({ slug: slugSchema, title: z.string(), status: z.literal("published") }), detailUrl: z.string() });
@@ -21,8 +37,9 @@ export function responseLinks(input: string) {
   return links.map(normalizeArticleLink);
 }
 
-async function request<T>(path: string, token: string, schema: z.ZodType<T>, body?: unknown): Promise<T> {
+async function request<T>(path: string, token: string, schema: z.ZodType<T>, body?: unknown, signal?: AbortSignal): Promise<T> {
   const controller = new AbortController();
+  const abort = () => controller.abort(); signal?.addEventListener("abort", abort, { once: true }); if (signal?.aborted) abort();
   const timeout = window.setTimeout(() => controller.abort(), body === undefined ? 12_000 : 60_000);
   try {
     const response = await fetch(path, {
@@ -38,7 +55,7 @@ async function request<T>(path: string, token: string, schema: z.ZodType<T>, bod
   } catch (error) {
     if (error instanceof AdminRequestError) throw error;
     throw new AdminRequestError("uncertain");
-  } finally { window.clearTimeout(timeout); }
+  } finally { window.clearTimeout(timeout); signal?.removeEventListener("abort", abort); }
 }
 
 export function verifyAdminToken(token: string) {

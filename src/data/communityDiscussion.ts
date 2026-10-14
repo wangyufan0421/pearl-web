@@ -5,7 +5,7 @@ const identitySchema = z.object({
   xStatusId: z.string(), url: z.string().url(), author: z.string().nullable(), handle: z.string().nullable(),
   avatarUrl: z.string().nullable(), publishedAt: z.string().nullable(),
 });
-const sourceSchema = identitySchema.extend({
+export const sourceSchema = identitySchema.extend({
   role: z.enum(["primary", "response"]),
   fetchedAt: z.string().nullable(), lastAttemptedAt: z.string(),
   blocks: z.array(z.object({ id: z.string(), kind: z.enum(["heading", "quote", "paragraph"]), text: z.string(), translationZh: z.string().optional() })),
@@ -13,14 +13,14 @@ const sourceSchema = identitySchema.extend({
   position: z.number().int().nonnegative(), fetchStatus: z.enum(["success", "failed"]),
   lastFetchError: z.string().nullable().optional(),
 });
-const cardSchema = z.object({
+export const cardSchema = z.object({
   slug: slugSchema, title: z.string(), summary: z.string(), description: z.string().nullable(),
   summaryZh: z.string().optional(),
   primary: identitySchema, responseCount: z.number().int().nonnegative(),
   latestRecordedAt: z.string(), detailUrl: z.string(),
 });
 const listSchema = z.object({ discussions: z.array(cardSchema) });
-const discussionSchema = z.object({ slug: slugSchema, title: z.string(), description: z.string().nullable(), sources: z.array(sourceSchema) });
+export const discussionSchema = z.object({ slug: slugSchema, title: z.string(), description: z.string().nullable(), sources: z.array(sourceSchema) });
 
 export type CommunityDiscussionCard = z.infer<typeof cardSchema>;
 export type CommunityDiscussion = z.infer<typeof discussionSchema>;

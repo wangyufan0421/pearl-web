@@ -39,6 +39,9 @@ export function createLiveDiscussionHandlers(environment: Record<string, string 
   let service: DiscussionService | undefined;
   const live = () => service ??= createLiveDiscussionService(environment);
   const deferred: DiscussionService = {
+    listAdminDiscussions: () => live().listAdminDiscussions(),
+    getAdminDiscussion: slug => live().getAdminDiscussion(slug),
+    manageDiscussion: (slug, action) => live().manageDiscussion(slug, action),
     createDiscussion: (input) => live().createDiscussion(input),
     addSources: (slug, urls) => live().addSources(slug, urls),
     refreshSource: (slug, statusId) => live().refreshSource(slug, statusId),

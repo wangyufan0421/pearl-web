@@ -18,7 +18,7 @@ export function useCommunityResource<T>(loader: (signal: AbortSignal) => Promise
         const data = await loader(request.signal);
         if (active) setState({ data, loading: false, refreshing: false, error: null });
       } catch (error) {
-        if (active) setState(previous => ({ ...previous, loading: false, refreshing: false, error: error instanceof CommunityReadError ? error.kind : "unavailable" }));
+        if (active) setState(previous => ({ ...previous, ...(error instanceof CommunityReadError && error.kind === "missing" ? { data: null } : {}), loading: false, refreshing: false, error: error instanceof CommunityReadError ? error.kind : "unavailable" }));
       } finally { inFlight = false; }
     };
     void sync();

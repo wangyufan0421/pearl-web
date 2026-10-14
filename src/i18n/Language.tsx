@@ -71,7 +71,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     const [pathname, hash] = locationKey.split("#");
     const baseRoute = stripLanguage(pathname);
     const legacyRoute = baseRoute === "/" && hash === "overview" ? "/overview" : baseRoute === "/archive" && hash === "community-discussion" ? "/archive/community-discussion" : baseRoute;
-    const route = legacyRoute.startsWith("/archive/community-discussion/") ? "/archive/community-discussion" : legacyRoute;
+    const route = legacyRoute.startsWith("/admin/community-discussions/") ? "/admin/community-discussions" : legacyRoute.startsWith("/archive/community-discussion/") ? "/archive/community-discussion" : legacyRoute;
     document.title = `${translate(pageTitles[route] ?? "Pearl 是什么", language)} · Pearl ${language === "en" ? "Community" : "中文社区"}`;
     let description = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!description) { description = document.createElement("meta"); description.name = "description"; document.head.append(description); }

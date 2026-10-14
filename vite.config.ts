@@ -25,6 +25,8 @@ async function readJson(request: DevRequest): Promise<unknown> {
 }
 
 function paramsFor(pathname: string): Record<string, string | undefined> | undefined {
+  const admin = /^\/api\/admin\/community-discussions\/([a-z0-9-]+)(?:\/manage)?$/.exec(pathname);
+  if (admin) return { slug: admin[1] };
   const sources = /^\/api\/admin\/community-discussions\/([^/]+)\/sources$/.exec(pathname);
   if (sources) return { slug: decodeURIComponent(sources[1]) };
   const refresh = /^\/api\/admin\/community-discussions\/([^/]+)\/sources\/([^/]+)\/refresh$/.exec(pathname);
@@ -53,7 +55,8 @@ export function createDiscussionApiPlugin(environment: Record<string, string | u
         const isDetail = pathname === "/api/community-discussion";
         const params = paramsFor(pathname);
         const isCreate = pathname === "/api/admin/community-discussions";
-        if (!isList && !isDetail && !params && !isCreate) return next();
+        const isAdminList = pathname === "/api/admin/community-discussions/list/all";
+        if (!isList && !isDetail && !params && !isCreate && !isAdminList) return next();
 
         let body: unknown;
         try {
@@ -69,7 +72,10 @@ export function createDiscussionApiPlugin(environment: Record<string, string | u
         const { createLiveDiscussionHandlers, toDiscussionHttpRequest } = await import("./server/discussions/runtime.js");
         const input = toDiscussionHttpRequest({ body, headers: request.headers, query }, params);
         const handlers = createLiveDiscussionHandlers(environment);
-        const result = isList && method === "GET"
+        const result = isAdminList && method === "GET" ? await handlers.handleAdminList(input)
+          : params && method === "GET" && !pathname.includes("/sources") ? await handlers.handleAdminDetail(input)
+          : params && method === "POST" && pathname.endsWith("/manage") ? await handlers.handleManageDiscussion(input)
+          : isList && method === "GET"
           ? await handlers.handleListDiscussions(input)
           : isDetail && method === "GET"
             ? await handlers.handleGetDiscussion(input)
@@ -84,6 +90,7 @@ export function createDiscussionApiPlugin(environment: Record<string, string | u
                   : { status: 400, body: { error: "invalid_request" } };
         response.statusCode = result.status;
         response.setHeader("content-type", "application/json");
+        response.setHeader("cache-control", "no-store");
         response.end(JSON.stringify(result.body));
       })().catch(() => {
         response.statusCode = 503;

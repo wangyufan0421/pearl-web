@@ -200,7 +200,7 @@ function AppContent() {
   if (pathname === "/overview") return <OverviewPage />;
   if (pathname === "/chain") return <ChainPage />;
   if (pathname === "/valuation") return <ValuationPage />;
-  if (pathname === "/admin/community-discussions") return <CommunityAdminPage />;
+  if (pathname === "/admin/community-discussions" || pathname.startsWith("/admin/community-discussions/")) return <CommunityAdminPage route={pathname} />;
   if (pathname === "/archive/core-mechanism") return <CoreMechanismPage />;
   if (pathname === "/archive/whitepaper") return <WhitepaperPage />;
   if (pathname === "/archive/articles") return <ArticlesPage />;

@@ -70,6 +70,10 @@ export type ResponseInsertResult = {
 };
 
 export interface DiscussionStore {
+  listAdminDiscussions(): Promise<Array<PublicDiscussionCard & { status: DiscussionStatus }>>;
+  getAdminDiscussion(slug: string): Promise<(PublicDiscussionDetail & { status: DiscussionStatus }) | undefined>;
+  setDiscussionStatus(slug: string, status: DiscussionStatus): Promise<void>;
+  deleteDiscussion(slug: string): Promise<void>;
   createDiscussionWithPrimary(input: CreateDiscussionWithPrimaryInput): Promise<{ discussion: DiscussionRecord; primary: StoredSource }>;
   getDiscussionBySlug(slug: string): Promise<DiscussionRecord | undefined>;
   getSourceByStatusId(statusId: string): Promise<StoredSource | undefined>;
@@ -112,6 +116,28 @@ export class InMemoryDiscussionStore implements DiscussionStore {
   private readonly sources = new Map<string, StoredSource>();
   private readonly sourceIds = new Map<string, string>();
   private nextId = 1;
+
+  async listAdminDiscussions() {
+    return [...this.discussions.values()].map(discussion => ({ ...this.cardFor(discussion), status: discussion.status }));
+  }
+  async getAdminDiscussion(slug: string) {
+    const discussion = this.discussions.get(slug);
+    if (!discussion) return undefined;
+    return clone({ slug, title: discussion.title, description: discussion.description, status: discussion.status, sources: orderedSources([...this.sources.values()].filter(source => source.discussionId === discussion.id)).map(publicSource) });
+  }
+  async setDiscussionStatus(slug: string, status: DiscussionStatus) {
+    const discussion = this.discussions.get(slug);
+    if (!discussion) throw new Error("Discussion not found");
+    this.discussions.set(slug, { ...discussion, status });
+  }
+  async deleteDiscussion(slug: string) {
+    const discussion = this.discussions.get(slug);
+    if (!discussion) throw new Error("Discussion not found");
+    for (const source of this.sources.values()) if (source.discussionId === discussion.id) {
+      this.sources.delete(source.id); this.sourceIds.delete(source.xStatusId);
+    }
+    this.discussions.delete(slug);
+  }
 
   async createDiscussionWithPrimary(input: CreateDiscussionWithPrimaryInput) {
     if (this.discussions.has(input.slug)) throw new Error(`Discussion slug already exists: ${input.slug}`);

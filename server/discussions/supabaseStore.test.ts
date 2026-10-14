@@ -12,6 +12,7 @@ class FakeQuery implements PromiseLike<Result> {
   select(...args: unknown[]) { this.calls.push({ method: "select", args }); return this; }
   insert(...args: unknown[]) { this.calls.push({ method: "insert", args }); return this; }
   update(...args: unknown[]) { this.calls.push({ method: "update", args }); return this; }
+  delete(...args: unknown[]) { this.calls.push({ method: "delete", args }); return this; }
   eq(...args: unknown[]) { this.calls.push({ method: "eq", args }); return this; }
   in(...args: unknown[]) { this.calls.push({ method: "in", args }); return this; }
   maybeSingle() { this.calls.push({ method: "maybeSingle", args: [] }); return this; }
@@ -65,6 +66,13 @@ function createInput(): CreateDiscussionWithPrimaryInput {
 }
 
 describe("Supabase discussion store configuration", () => {
+  it("deletes only the selected parent discussion in one cascading statement", async () => {
+    const database = new FakeSupabase({ data: null, error: null }, [{ data: [{ id: "discussion-1" }], error: null }]);
+    await createSupabaseDiscussionStore(database).deleteDiscussion("wtf-is-pearl");
+    expect(database.tableCalls).toHaveLength(1);
+    expect(database.tableCalls[0].table).toBe("discussions");
+    expect(database.tableCalls[0].query.calls).toEqual([{ method: "delete", args: [] }, { method: "eq", args: ["slug", "wtf-is-pearl"] }, { method: "select", args: ["id"] }]);
+  });
   it("rejects missing server-only Supabase configuration", () => {
     expect(() => createSupabaseClient({})).toThrow("SUPABASE_URL is not configured on the server");
   });
