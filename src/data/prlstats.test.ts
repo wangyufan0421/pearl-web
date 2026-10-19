@@ -61,6 +61,20 @@ describe("getMetricSeries", () => {
     );
     expect(result.data.points[1].value).toBe(0.61);
   });
+
+  it("preserves projected supply points so charts can omit forecasts", async () => {
+    const response = jsonResponse([{
+      meta: { id: "supply", label: "Circulating supply", unit: "PRL" },
+      points: [
+        { t: 1791423600, v: 338_000_000 },
+        { t: 1794015600, v: 370_000_000, projected: true },
+      ],
+    }]);
+
+    const result = await getMetricSeries("supply", async () => response);
+
+    expect(result.data.points.map((point) => point.projected)).toEqual([false, true]);
+  });
 });
 
 describe("getLighterCandles", () => {

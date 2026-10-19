@@ -7,6 +7,7 @@ import { type DataResult, type MetricPoint, type MetricSeries, type SourceKind }
 import { loadMetricSeries, loadNetworkSnapshot, subscribeToDataUpdates } from "./data/runtime";
 import type { NetworkSnapshot } from "./data/schema";
 import { formatUsd } from "./lib/format";
+import { SUPPLY_CAP, SupplyHistoryChart } from "./SupplyHistoryChart";
 
 const metricIds = ["price", "prl_btc", "volume", "cost_allin", "supply", "mcap_vs_btc", "fdv_vs_btc", "inflation", "miner_revenue"] as const;
 type MetricId = typeof metricIds[number];
@@ -39,6 +40,19 @@ const chartOptions: { id: ChartMetricId; label: string; source: string; formatte
 ];
 
 function latest(result: DataResult<MetricSeries> | undefined) { return result?.data.points.at(-1)?.value; }
+export function latestObservedSupply(result: DataResult<MetricSeries> | undefined, now = Date.now()) {
+  let latestPoint: MetricPoint | undefined;
+  for (const point of result?.data.points ?? []) {
+    const time = point.timestamp.getTime();
+    if (point.projected === true || !Number.isFinite(time) || time > now || !Number.isFinite(point.value) || point.value < 0 || point.value > SUPPLY_CAP) continue;
+    if (!latestPoint || time > latestPoint.timestamp.getTime()) latestPoint = point;
+  }
+  return latestPoint?.value;
+}
+export function supplyProgress(observedSupply: number | undefined, networkSupply: number | undefined) {
+  const issued = observedSupply ?? networkSupply;
+  return issued === undefined ? undefined : { issued, percent: issued / SUPPLY_CAP * 100 };
+}
 function valueOrState(result: DataResult<MetricSeries> | undefined, formatter: (value: number) => string) {
   const value = latest(result);
   return result === undefined ? "读取中" : value === undefined ? "暂未提供" : formatter(value);
@@ -125,12 +139,15 @@ export default function ValuationPage() {
   const metric = (id: MetricId) => metrics[id];
   const selectedChartOption = chartOptions.find((option) => option.id === selectedChartMetric) ?? chartOptions[0];
   const selectedChartPoints = metric(selectedChartMetric)?.data.points ?? [];
-  const price = latest(metric("price")); const supply = latest(metric("supply"));
+  const price = latest(metric("price")); const supply = latestObservedSupply(metric("supply"));
   const marketCap = price === undefined || supply === undefined ? undefined : price * supply;
-  const fdv = price === undefined ? undefined : price * 2_100_000_000;
+  const fdv = price === undefined ? undefined : price * SUPPLY_CAP;
   const marketCapState = metric("price") === undefined || metric("supply") === undefined ? "读取中" : marketCap === undefined ? "暂未提供" : formatUsd(marketCap);
   const fdvState = metric("price") === undefined ? "读取中" : fdv === undefined ? "暂未提供" : formatUsd(fdv);
   const issuanceValue = network === null || price === undefined ? undefined : network.data.emissionPrlDay * price;
+  const supplyCardValue = metric("supply") === undefined ? "读取中" : supply === undefined ? "暂未提供" : formatPrl(supply);
+  const progress = supplyProgress(supply, network?.data.supplyPrl);
+  const progressKind = supply === undefined ? network?.sourceKind ?? "fallback" : sourceKind(metric("supply"));
 
   return <main className="site-shell valuation-page">
     <SiteHeader />
@@ -157,7 +174,8 @@ export default function ValuationPage() {
 
       <section className="valuation-module">
         <ModuleHeader eyebrow="03 / SUPPLY" title={t("供给")} source={t("发行节奏与公开供应序列")} />
-        <div className="valuation-card-grid supply-cards"><DataCard label={t("流通供应量")} value={t(valueOrState(metric("supply"), formatPrl))} detail={t("prlstats 流通供应序列")} kind={sourceKind(metric("supply"))} /><DataCard label={t("供应进度")} value={t(network === null ? "读取中" : `${network.data.supplyPercent.toFixed(2)}%`)} detail={t(network === null ? "公开链上快照" : `${formatPrl(network.data.supplyPrl)} 已发行`)} kind={network?.sourceKind ?? "fallback"} /><DataCard label={t("年化通胀率")} value={t(valueOrState(metric("inflation"), (value) => formatPercent(value, 2)))} detail={t("按当前发行节奏年化")} kind={sourceKind(metric("inflation"))} /><DataCard label={t("每日排放")} value={t(network === null ? "读取中" : formatPrl(network.data.emissionPrlDay))} detail={t("公开网络快照")} kind={network?.sourceKind ?? "fallback"} /><DataCard label={t("每日发行价值")} value={t(issuanceValue === undefined ? network === null || metric("price") === undefined ? "读取中" : "暂未提供" : formatUsd(issuanceValue))} detail={t("参考价 × 当前日排放")} kind={sourceKind(metric("price"))} tone="yellow" /><DataCard label={t("矿工收入 / 日")} value={t(valueOrState(metric("miner_revenue"), formatUsd))} detail={t("prlstats 矿工收入序列")} kind={sourceKind(metric("miner_revenue"))} /></div>
+        <div className="valuation-card-grid supply-cards"><DataCard label={t("流通供应量")} value={t(supplyCardValue)} detail={t("prlstats 流通供应序列")} kind={sourceKind(metric("supply"))} /><DataCard label={t("供应进度")} value={t(progress === undefined ? "读取中" : `${progress.percent.toFixed(2)}%`)} detail={t(progress === undefined ? "公开链上快照" : `${formatPrl(progress.issued)} 已发行`)} kind={progressKind} /><DataCard label={t("年化通胀率")} value={t(valueOrState(metric("inflation"), (value) => formatPercent(value, 2)))} detail={t("按当前发行节奏年化")} kind={sourceKind(metric("inflation"))} /><DataCard label={t("每日排放")} value={t(network === null ? "读取中" : formatPrl(network.data.emissionPrlDay))} detail={t("公开网络快照")} kind={network?.sourceKind ?? "fallback"} /><DataCard label={t("每日发行价值")} value={t(issuanceValue === undefined ? network === null || metric("price") === undefined ? "读取中" : "暂未提供" : formatUsd(issuanceValue))} detail={t("参考价 × 当前日排放")} kind={sourceKind(metric("price"))} tone="yellow" /><DataCard label={t("矿工收入 / 日")} value={t(valueOrState(metric("miner_revenue"), formatUsd))} detail={t("prlstats 矿工收入序列")} kind={sourceKind(metric("miner_revenue"))} /></div>
+        <SupplyHistoryChart result={metric("supply")} />
       </section>
     </div>
   </main>;

@@ -14,7 +14,7 @@ export type DataResult<T> = {
 
 type Fetcher = typeof fetch;
 
-export type MetricPoint = { timestamp: Date; value: number };
+export type MetricPoint = { timestamp: Date; value: number; projected?: boolean };
 export type MetricSeries = {
   id: string;
   label: string;
@@ -76,9 +76,9 @@ export async function getMetricSeries(metric: string, fetcher: Fetcher = fetch):
     const first = payload[0] as { meta?: { id?: string; label?: string; unit?: string }; points?: unknown };
     if (!Array.isArray(first.points)) throw new Error("prlstats series has no points");
     const points = first.points.map((point) => {
-      const value = point as { t?: unknown; v?: unknown };
+      const value = point as { t?: unknown; v?: unknown; projected?: unknown };
       if (typeof value.t !== "number" || typeof value.v !== "number") throw new Error("invalid prlstats point");
-      return { timestamp: new Date(value.t * 1000), value: value.v };
+      return { timestamp: new Date(value.t * 1000), value: value.v, projected: value.projected === true };
     });
     return {
       data: {

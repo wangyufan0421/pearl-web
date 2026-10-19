@@ -18,8 +18,13 @@
 }
 
 .valuation-page .valuation-intro h1,
-.valuation-page .valuation-module-header h2 {
+.valuation-page .valuation-module-header h2,
+.valuation-page .supply-history-heading h3 {
   font-family: var(--font-display);
+}
+
+.valuation-page .supply-history-eyebrow {
+  font-family: var(--font-mono);
 }
 
 .valuation-page .valuation-module-header {
