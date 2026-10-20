@@ -10,6 +10,7 @@ export type FallbackDiscussionMetadata = Pick<
 >;
 
 export type DiscussionClock = () => Date | string;
+export type AuthorIdentity = { userId: string | null; author: string | null; handle: string | null; avatarUrl: string | null };
 
 const isRecord = (value: unknown): value is RecordValue => typeof value === "object" && value !== null;
 
@@ -24,6 +25,23 @@ function readPath(value: unknown, path: string[]): unknown {
     current = current[key];
   }
   return current;
+}
+
+function httpsUrl(value: unknown): string | null {
+  const text = readString(value);
+  if (!text) return null;
+  try { return new URL(text).protocol === "https:" ? text : null; } catch { return null; }
+}
+
+function identityFromUser(value: unknown): AuthorIdentity {
+  const core = readPath(value, ["core"]);
+  const legacy = readPath(value, ["legacy"]);
+  return {
+    userId: readString(readPath(value, ["rest_id"])) ?? readString(readPath(value, ["id_str"])) ?? readString(readPath(legacy, ["id_str"])),
+    author: readString(readPath(core, ["name"])) ?? readString(readPath(legacy, ["name"])) ?? readString(readPath(value, ["name"])),
+    handle: readString(readPath(core, ["screen_name"])) ?? readString(readPath(legacy, ["screen_name"])) ?? readString(readPath(value, ["screen_name"])),
+    avatarUrl: httpsUrl(readPath(value, ["avatar", "image_url"])) ?? httpsUrl(readPath(legacy, ["profile_image_url_https"])) ?? httpsUrl(readPath(value, ["profile_image_url_https"])),
+  };
 }
 
 function statusIdOf(tweet: RecordValue): string | null {
@@ -56,6 +74,32 @@ function findRootTweet(value: unknown, statusId: string): RecordValue | null {
   };
 
   return visit(value);
+}
+
+export function extractCommunityIdentity(normalized: NormalizedDiscussionSource, payload: unknown): AuthorIdentity {
+  const tweet = findRootTweet(payload, normalized.xStatusId);
+  if (!tweet) return { userId: null, author: null, handle: null, avatarUrl: null };
+  return identityFromUser(readPath(tweet, ["core", "user_results", "result"]) ?? readPath(tweet, ["user_results", "result"]) ?? readPath(tweet, ["user"]));
+}
+
+export function extractUserIdentity(payload: unknown, userId: string): AuthorIdentity {
+  const visited = new Set<object>();
+  const visit = (candidate: unknown): AuthorIdentity | null => {
+    if (!isRecord(candidate) || visited.has(candidate)) return null;
+    visited.add(candidate);
+    const identity = identityFromUser(candidate);
+    if (identity.userId === userId) return identity;
+    for (const child of Object.values(candidate)) {
+      if (Array.isArray(child)) {
+        for (const item of child) { const found = visit(item); if (found) return found; }
+      } else {
+        const found = visit(child);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  return visit(payload) ?? { userId: null, author: null, handle: null, avatarUrl: null };
 }
 
 function paragraphs(text: string): SourceBlock[] {
@@ -103,9 +147,7 @@ export function extractCommunityDiscussion(
   if (!tweet) throw new Error(`Could not find X status ${normalized.xStatusId} in the response`);
 
   const legacy = readPath(tweet, ["legacy"]);
-  const userResult = readPath(tweet, ["core", "user_results", "result"]);
-  const userLegacy = readPath(userResult, ["legacy"]);
-  const userCore = readPath(userResult, ["core"]);
+  const identity = extractCommunityIdentity(normalized, payload);
   const article = articleBlocks(tweet);
   const noteText = readString(readPath(tweet, ["note_tweet", "note_tweet_results", "result", "text"]));
   const legacyText = readString(isRecord(legacy) ? legacy.full_text : undefined);
@@ -125,10 +167,9 @@ export function extractCommunityDiscussion(
   return {
     xStatusId: normalized.xStatusId,
     url: normalized.url,
-    author: readString(readPath(userCore, ["name"])) ?? readString(readPath(userLegacy, ["name"])) ?? fallback.author ?? null,
-    handle: readString(readPath(userCore, ["screen_name"])) ?? readString(readPath(userLegacy, ["screen_name"])) ?? fallback.handle ?? accountFromUrl(normalized.url),
-    avatarUrl:
-      readString(readPath(userResult, ["avatar", "image_url"])) ?? readString(readPath(userLegacy, ["profile_image_url_https"])) ?? fallback.avatarUrl ?? null,
+    author: identity.author ?? fallback.author ?? null,
+    handle: identity.handle ?? fallback.handle ?? accountFromUrl(normalized.url),
+    avatarUrl: identity.avatarUrl ?? fallback.avatarUrl ?? null,
     publishedAt: readString(isRecord(legacy) ? legacy.created_at : undefined) ?? fallback.publishedAt ?? null,
     fetchedAt: fetchedAt(clock),
     ...content,

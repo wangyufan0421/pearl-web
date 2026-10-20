@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractCommunityDiscussion } from "./communityDiscussion";
+import { extractCommunityDiscussion, extractCommunityIdentity, extractUserIdentity } from "./communityDiscussion";
 
 const normalized = {
   xStatusId: "2108519545514410023",
@@ -26,6 +26,23 @@ const author = {
 };
 
 describe("extractCommunityDiscussion", () => {
+  it("reads only the requested tweet author's stable identity", () => {
+    const identity = extractCommunityIdentity(normalized, rootTweet({
+      rest_id: normalized.xStatusId,
+      core: { user_results: { result: { rest_id: "42", core: { name: "Root", screen_name: "root" }, avatar: { image_url: "https://pbs.twimg.com/root.jpg" } } } },
+      legacy: { full_text: "Root text", quoted_status_result: { result: { rest_id: "99", core: { user_results: { result: { rest_id: "77", core: { name: "Wrong" } } } } } } },
+    }));
+    expect(identity).toEqual({ userId: "42", author: "Root", handle: "root", avatarUrl: "https://pbs.twimg.com/root.jpg" });
+  });
+  it("returns no unverified author when only a quoted tweet has user data", () => {
+    const identity = extractCommunityIdentity(normalized, rootTweet({ rest_id: normalized.xStatusId, legacy: { full_text: "Root", quoted_status_result: { result: { rest_id: "99", core: { user_results: { result: { rest_id: "77", core: { name: "Wrong" } } } } } } } }));
+    expect(identity).toEqual({ userId: null, author: null, handle: null, avatarUrl: null });
+  });
+  it("finds only the matching stable user in a user lookup response", () => {
+    const payload = { users: [{ rest_id: "77", core: { name: "Wrong" } }, { rest_id: "42", core: { name: "Correct", screen_name: "correct" }, avatar: { image_url: "https://pbs.twimg.com/correct.jpg" } }] };
+    expect(extractUserIdentity(payload, "42")).toEqual({ userId: "42", author: "Correct", handle: "correct", avatarUrl: "https://pbs.twimg.com/correct.jpg" });
+    expect(extractUserIdentity(payload, "88").userId).toBeNull();
+  });
   it("reads current Twitter241 user core and avatar fields", () => {
     const result = extractCommunityDiscussion(normalized, rootTweet({ rest_id: normalized.xStatusId, core: { user_results: { result: { core: { name: "blocmates.", screen_name: "blocmates" }, avatar: { image_url: "https://pbs.twimg.com/profile_images/avatar.jpg" }, legacy: {} } } }, legacy: { full_text: "Original body" } }));
     expect(result).toMatchObject({ author: "blocmates.", handle: "blocmates", avatarUrl: "https://pbs.twimg.com/profile_images/avatar.jpg" });
