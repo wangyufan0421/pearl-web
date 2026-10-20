@@ -38,6 +38,10 @@ describe("extractCommunityDiscussion", () => {
     const identity = extractCommunityIdentity(normalized, rootTweet({ rest_id: normalized.xStatusId, legacy: { full_text: "Root", quoted_status_result: { result: { rest_id: "99", core: { user_results: { result: { rest_id: "77", core: { name: "Wrong" } } } } } } } }));
     expect(identity).toEqual({ userId: null, author: null, handle: null, avatarUrl: null });
   });
+  it("uses the requested tweet's legacy author ID for a verified profile lookup", () => {
+    const identity = extractCommunityIdentity(normalized, rootTweet({ rest_id: normalized.xStatusId, legacy: { full_text: "Root", user_id_str: "42" } }));
+    expect(identity).toEqual({ userId: "42", author: null, handle: null, avatarUrl: null });
+  });
   it("finds only the matching stable user in a user lookup response", () => {
     const payload = { users: [{ rest_id: "77", core: { name: "Wrong" } }, { rest_id: "42", core: { name: "Correct", screen_name: "correct" }, avatar: { image_url: "https://pbs.twimg.com/correct.jpg" } }] };
     expect(extractUserIdentity(payload, "42")).toEqual({ userId: "42", author: "Correct", handle: "correct", avatarUrl: "https://pbs.twimg.com/correct.jpg" });
@@ -47,8 +51,8 @@ describe("extractCommunityDiscussion", () => {
     const result = extractCommunityDiscussion(normalized, rootTweet({ rest_id: normalized.xStatusId, core: { user_results: { result: { core: { name: "blocmates.", screen_name: "blocmates" }, avatar: { image_url: "https://pbs.twimg.com/profile_images/avatar.jpg" }, legacy: {} } } }, legacy: { full_text: "Original body" } }));
     expect(result).toMatchObject({ author: "blocmates.", handle: "blocmates", avatarUrl: "https://pbs.twimg.com/profile_images/avatar.jpg" });
   });
-  it("keeps the author's account from a meaningful source URL when user metadata is unavailable", () => {
-    expect(extractCommunityDiscussion(normalized, rootTweet({ rest_id: normalized.xStatusId, legacy: { full_text: "Original body" } })).handle).toBe("blocmates");
+  it("does not persist an unverified account from the source URL when user metadata is unavailable", () => {
+    expect(extractCommunityDiscussion(normalized, rootTweet({ rest_id: normalized.xStatusId, legacy: { full_text: "Original body" } })).handle).toBeNull();
   });
   it("uses the complete Article blocks and title", () => {
     const payload = rootTweet({

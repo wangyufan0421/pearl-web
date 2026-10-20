@@ -104,6 +104,16 @@ describe("discussion service", () => {
     fetcher.items.set("100", { ...primary, blocks: [{ id: "a", kind: "paragraph", text: "Changed English original" }] });
     expect((await service.refreshSource(created.discussion.slug, "100")).blocks[0].translationZh).toBeUndefined();
   });
+  it("does not erase or replace saved identity during a manual content refresh", async () => {
+    const { fetcher, service } = setup();
+    const primary = source("100");
+    fetcher.items.set("100", primary);
+    const created = await service.createDiscussion({ primaryUrl: primary.url });
+    fetcher.items.set("100", source("100", { author: null, handle: "old-handle", avatarUrl: null, blocks: [{ id: "new", kind: "paragraph", text: "Updated text" }] }));
+    const refreshed = await service.refreshSource(created.discussion.slug, "100");
+    expect(refreshed).toMatchObject({ author: "Blocmates", handle: "blocmates", avatarUrl: "https://example.com/avatar.png" });
+    expect(refreshed.blocks[0].text).toBe("Updated text");
+  });
   it("creates a published discussion with its complete primary snapshot", async () => {
     const { fetcher, service } = setup();
     const primary = source("100");

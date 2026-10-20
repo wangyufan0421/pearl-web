@@ -68,6 +68,9 @@ declare
   supplied_author text := nullif(btrim(input ->> 'author'), '');
   supplied_handle text := nullif(btrim(input ->> 'handle'), '');
   supplied_avatar text := nullif(btrim(input ->> 'avatarUrl'), '');
+  valid_avatar text;
+  verified_identity boolean;
+  complete_identity boolean;
   delay_seconds integer;
 begin
   select * into current_source
@@ -78,25 +81,38 @@ begin
 
   if not found then return jsonb_build_object('outcome', 'stale'); end if;
 
-  if supplied_user_id is not null
+  verified_identity := supplied_user_id is not null
     and supplied_user_id ~ '^[0-9]+$'
-    and (current_source.author_user_id is null or current_source.author_user_id = supplied_user_id)
-  then
+    and (current_source.author_user_id is null or current_source.author_user_id = supplied_user_id);
+  complete_identity := verified_identity
+    and supplied_author is not null
+    and supplied_handle is not null
+    and supplied_avatar like 'https://%';
+  valid_avatar := case when supplied_avatar like 'https://%' then supplied_avatar else null end;
+  delay_seconds := least(86400, (300 * power(2, least(current_source.identity_failure_count, 8)))::integer);
+
+  if verified_identity then
     update public.discussion_sources
     set author_user_id = coalesce(author_user_id, supplied_user_id),
-        author = coalesce(supplied_author, author),
-        handle = coalesce(supplied_handle, handle),
-        avatar_url = coalesce(case when supplied_avatar like 'https://%' then supplied_avatar else null end, avatar_url),
+        author = case when current_source.author_user_id is null then coalesce(author, supplied_author) else coalesce(supplied_author, author) end,
+        handle = case when current_source.author_user_id is null then coalesce(handle, supplied_handle) else coalesce(supplied_handle, handle) end,
+        avatar_url = case when current_source.author_user_id is null then coalesce(avatar_url, valid_avatar) else coalesce(valid_avatar, avatar_url) end,
         identity_checked_at = now(),
-        identity_next_check_at = now() + interval '24 hours',
-        identity_failure_count = 0,
+        identity_next_check_at = case
+          when not complete_identity then now() + make_interval(secs => delay_seconds)
+          when current_source.author_user_id is null then now() + interval '5 minutes'
+          else now() + interval '24 hours'
+        end,
+        identity_failure_count = case when complete_identity then 0 else identity_failure_count + 1 end,
         identity_lease_token = null,
         identity_lease_until = null
     where id = current_source.id;
-    return jsonb_build_object('outcome', 'updated');
+    if complete_identity then
+      return jsonb_build_object('outcome', case when current_source.author_user_id is null then 'identity_bound' else 'updated' end);
+    end if;
+    return jsonb_build_object('outcome', 'partial_retry_scheduled');
   end if;
 
-  delay_seconds := least(86400, (300 * power(2, least(current_source.identity_failure_count, 8)))::integer);
   if supplied_user_id is not null and current_source.author_user_id is distinct from supplied_user_id then
     delay_seconds := 86400;
   end if;

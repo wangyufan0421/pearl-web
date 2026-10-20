@@ -43,22 +43,19 @@ export function createTwitter241IdentityResolver({ apiKey, fetch = globalThis.fe
       const target = { xStatusId: normalized.statusId, url: normalized.url };
       if (knownUserId) {
         try {
-          const profile = await userById(knownUserId);
-          if (complete(profile)) return profile;
-        } catch { /* The tweet endpoint can still provide a verified profile. */ }
+          return await userById(knownUserId);
+        } catch { return emptyIdentity(); }
       }
 
       const primaryPayload = initialTweetPayload ?? await request("/tweet", { pid: normalized.statusId });
       let identity = extractCommunityIdentity(target, primaryPayload);
-      if (knownUserId && identity.userId && identity.userId !== knownUserId) return emptyIdentity();
       if (complete(identity)) return identity;
 
       try {
         const alternate = extractCommunityIdentity(target, await request("/tweet-v2", { pid: normalized.statusId }));
-        if (knownUserId && alternate.userId && alternate.userId !== knownUserId) return emptyIdentity();
         identity = mergeIdentity(identity, alternate);
       } catch { /* Preserve the first successful tweet response. */ }
-      if (!identity.userId || (knownUserId && identity.userId !== knownUserId)) return emptyIdentity();
+      if (!identity.userId) return emptyIdentity();
       if (complete(identity)) return identity;
 
       try { identity = mergeIdentity(identity, await userById(identity.userId)); } catch { /* Incomplete verified identity may still be useful. */ }

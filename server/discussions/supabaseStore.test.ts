@@ -126,6 +126,17 @@ describe("Supabase discussion store configuration", () => {
     }]);
   });
 
+  it("updates a refreshed source's content without overwriting concurrent identity changes", async () => {
+    const source: StoredSource = { ...createInput().primary, id: "source-1", discussionId: "discussion-1", role: "primary", position: 0 };
+    const fake = new FakeSupabase({ data: null, error: null }, [{ data: primaryRow, error: null }]);
+    await createSupabaseDiscussionStore(fake).updateSourceIfUnchanged(source, source.lastAttemptedAt);
+    const values = fake.tableCalls[0].query.calls.find(call => call.method === "update")!.args[0] as Record<string, unknown>;
+    expect(values).toMatchObject({ blocks: [], fetch_status: "success" });
+    expect(values).not.toHaveProperty("author");
+    expect(values).not.toHaveProperty("handle");
+    expect(values).not.toHaveProperty("avatar_url");
+  });
+
   it("writes response inserts in snake case and returns a public published summary", async () => {
     const response: Omit<StoredSource, "id"> = {
       ...primaryRow,

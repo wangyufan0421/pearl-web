@@ -24,9 +24,36 @@ describe("Twitter241 author identity resolver", () => {
     expect(calls.map(value => new URL(value).pathname)).toEqual(["/tweet", "/tweet-v2"]);
   });
 
+  it("looks up the author by a user ID embedded in the legacy tweet", async () => {
+    const legacyTweet = { data: { tweetResult: { result: { rest_id: statusId, legacy: { full_text: "Saved text", user_id_str: "42" } } } } };
+    const fetch = async (input: string) => response(input.includes("get-users")
+      ? { users: [{ rest_id: "42", core: { name: "Legacy Root", screen_name: "root" }, avatar: { image_url: "https://pbs.twimg.com/legacy.jpg" } }] }
+      : legacyTweet);
+    const identity = await createTwitter241IdentityResolver({ apiKey: "test", fetch }).resolve(url);
+    expect(identity).toMatchObject({ userId: "42", author: "Legacy Root", avatarUrl: "https://pbs.twimg.com/legacy.jpg" });
+  });
+
   it("refreshes a known stable user ID through the profile endpoint", async () => {
     const fetch = async () => response({ users: [{ rest_id: "42", core: { name: "Updated Root", screen_name: "root" }, avatar: { image_url: "https://pbs.twimg.com/new.jpg" } }] });
     await expect(createTwitter241IdentityResolver({ apiKey: "test", fetch }).resolve(url, "42")).resolves.toEqual({ userId: "42", author: "Updated Root", handle: "root", avatarUrl: "https://pbs.twimg.com/new.jpg" });
+  });
+
+  it("returns only current profile fields for a known ID, leaving old saved values intact when fields are omitted", async () => {
+    const calls: string[] = [];
+    const fetch = async (input: string) => { calls.push(input); return response(input.includes("get-users")
+      ? { users: [{ rest_id: "42", avatar: { image_url: "https://pbs.twimg.com/new.jpg" } }] }
+      : tweet({ rest_id: "42", core: { name: "Old Root", screen_name: "oldroot" }, avatar: { image_url: "https://pbs.twimg.com/old.jpg" } })); };
+    const identity = await createTwitter241IdentityResolver({ apiKey: "test", fetch }).resolve(url, "42");
+    expect(identity).toEqual({ userId: "42", author: null, handle: null, avatarUrl: "https://pbs.twimg.com/new.jpg" });
+    expect(calls.map(value => new URL(value).pathname)).toEqual(["/get-users"]);
+  });
+
+  it("does not replay stale tweet profile when a known user's current profile lookup fails", async () => {
+    const calls: string[] = [];
+    const fetch = async (input: string) => { calls.push(input); return response({}, false); };
+    const identity = await createTwitter241IdentityResolver({ apiKey: "test", fetch }).resolve(url, "42");
+    expect(identity).toEqual({ userId: null, author: null, handle: null, avatarUrl: null });
+    expect(calls.map(value => new URL(value).pathname)).toEqual(["/get-users"]);
   });
 
   it("rejects a lookup response whose user ID does not match the stored author", async () => {

@@ -251,7 +251,16 @@ export function createSupabaseDiscussionStore(client: unknown): DiscussionStore 
       return mapDatabaseRow("source", row);
     },
     async updateSourceIfUnchanged(source, expectedAttemptedAt) {
-      const row = await rows<Record<string, unknown> | null>(database.from("discussion_sources").update(sourceToRow(source)).eq("id", source.id).eq("last_attempted_at", expectedAttemptedAt).select("*").maybeSingle());
+      const contentOnly = {
+        published_at: source.publishedAt,
+        fetched_at: source.fetchedAt,
+        last_attempted_at: source.lastAttemptedAt,
+        blocks: structuredClone(source.blocks),
+        source_type: source.sourceType,
+        fetch_status: source.fetchStatus,
+        last_fetch_error: source.lastFetchError,
+      };
+      const row = await rows<Record<string, unknown> | null>(database.from("discussion_sources").update(contentOnly).eq("id", source.id).eq("last_attempted_at", expectedAttemptedAt).select("*").maybeSingle());
       return row ? mapDatabaseRow("source", row) : undefined;
     },
     async nextResponsePosition(discussionId) {

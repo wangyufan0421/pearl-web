@@ -15,12 +15,29 @@ describe("community identity migration contract", () => {
 
   it("checks successful identities again after a day without updating content fields", () => {
     const sql = migration();
-    expect(sql).toMatch(/identity_next_check_at\s*=\s*now\(\)\s*\+\s*interval '24 hours'/i);
+    expect(sql).toMatch(/supplied_author is not null\s+and supplied_handle is not null\s+and supplied_avatar like 'https:\/\/%'/i);
+    expect(sql).toMatch(/identity_next_check_at\s*=\s*case[\s\S]*?when current_source\.author_user_id is null then now\(\) \+ interval '5 minutes'[\s\S]*?else now\(\) \+ interval '24 hours'/i);
     const finish = sql.split("create or replace function public.finish_discussion_identity_source")[1];
     expect(finish).toBeTruthy();
     expect(finish).not.toMatch(/\bblocks\s*=/i);
     expect(finish).not.toMatch(/\bfetched_at\s*=/i);
     expect(finish).not.toMatch(/\blast_attempted_at\s*=/i);
+  });
+
+  it("backs off and retries when a verified author profile is incomplete", () => {
+    const sql = migration();
+    expect(sql).toMatch(/verified_identity\s+boolean/i);
+    expect(sql).toMatch(/complete_identity\s+boolean/i);
+    expect(sql).toMatch(/identity_failure_count\s*=\s*case when complete_identity then 0 else identity_failure_count \+ 1 end/i);
+    expect(sql).toMatch(/partial_retry_scheduled/i);
+  });
+
+  it("does not overwrite saved details with a historical tweet before binding its stable user ID", () => {
+    const sql = migration();
+    expect(sql).toMatch(/when current_source\.author_user_id is null then coalesce\(author, supplied_author\)/i);
+    expect(sql).toMatch(/when current_source\.author_user_id is null then coalesce\(handle, supplied_handle\)/i);
+    expect(sql).toMatch(/when current_source\.author_user_id is null then coalesce\(avatar_url, valid_avatar\)/i);
+    expect(sql).toMatch(/when current_source\.author_user_id is null then now\(\) \+ interval '5 minutes'/i);
   });
 
   it("does not touch discussion timestamps for identity-only updates", () => {

@@ -79,7 +79,8 @@ function findRootTweet(value: unknown, statusId: string): RecordValue | null {
 export function extractCommunityIdentity(normalized: NormalizedDiscussionSource, payload: unknown): AuthorIdentity {
   const tweet = findRootTweet(payload, normalized.xStatusId);
   if (!tweet) return { userId: null, author: null, handle: null, avatarUrl: null };
-  return identityFromUser(readPath(tweet, ["core", "user_results", "result"]) ?? readPath(tweet, ["user_results", "result"]) ?? readPath(tweet, ["user"]));
+  const identity = identityFromUser(readPath(tweet, ["core", "user_results", "result"]) ?? readPath(tweet, ["user_results", "result"]) ?? readPath(tweet, ["user"]));
+  return { ...identity, userId: identity.userId ?? readString(readPath(tweet, ["legacy", "user_id_str"])) ?? readString(tweet.user_id_str) };
 }
 
 export function extractUserIdentity(payload: unknown, userId: string): AuthorIdentity {
@@ -168,14 +169,10 @@ export function extractCommunityDiscussion(
     xStatusId: normalized.xStatusId,
     url: normalized.url,
     author: identity.author ?? fallback.author ?? null,
-    handle: identity.handle ?? fallback.handle ?? accountFromUrl(normalized.url),
+    handle: identity.handle ?? fallback.handle ?? null,
     avatarUrl: identity.avatarUrl ?? fallback.avatarUrl ?? null,
     publishedAt: readString(isRecord(legacy) ? legacy.created_at : undefined) ?? fallback.publishedAt ?? null,
     fetchedAt: fetchedAt(clock),
     ...content,
   };
-}
-
-function accountFromUrl(value: string): string | null {
-  try { const account = new URL(value).pathname.split("/")[1]; return /^[a-zA-Z0-9_]{1,15}$/.test(account) && account.toLowerCase() !== "i" ? account : null; } catch { return null; }
 }

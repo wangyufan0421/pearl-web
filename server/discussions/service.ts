@@ -169,7 +169,16 @@ export function createDiscussionService({ store, fetchSource, now = () => new Da
           const previous = latest.blocks.find(saved => saved.id === block.id && saved.kind === block.kind && saved.text === block.text);
           return previous?.translationZh ? { ...block, translationZh: previous.translationZh } : block;
         });
-        replacement = toSuccessfulSource({ ...fetched, blocks, xStatusId: source.xStatusId, url: normalized.url }, normalized.url, revision, latest) as StoredSource;
+        replacement = toSuccessfulSource({
+          ...fetched,
+          blocks,
+          xStatusId: source.xStatusId,
+          url: normalized.url,
+          // The identity queue owns changes to already-saved author metadata.
+          author: latest.author ?? fetched.author,
+          handle: latest.handle ?? fetched.handle,
+          avatarUrl: latest.avatarUrl ?? fetched.avatarUrl,
+        }, normalized.url, revision, latest) as StoredSource;
       } else {
         replacement = { ...latest, fetchStatus: "failed", lastAttemptedAt: revision, lastFetchError: fetchError };
       }

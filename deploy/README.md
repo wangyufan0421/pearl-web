@@ -11,8 +11,11 @@
 1. `supabase/migrations/202610110001_persistent_community_discussions.sql`
 2. `supabase/migrations/202610110002_atomic_discussion_response.sql`
 3. `supabase/migrations/202610120003_market_snapshots.sql`
+4. `supabase/migrations/202610200001_discussion_identity_refresh.sql`
 
 第三个迁移新增 `market_snapshots`，保存原始 JSON、成功采集时间、最后尝试时间及失败状态。采集成功才更新正文；失败只更新尝试状态。所有表和函数只允许服务角色访问，匿名客户端经本站 API 读取。
+
+第四个迁移增加社区作者身份的独立核对状态与原子领取函数；它不会清空已有讨论、原文或译文。更新旧部署时也要先执行第四个迁移，再重启新版 `pearl-web`。否则网站仍可读取旧数据，但身份后台任务无法运行。
 
 ## 2. 运行环境
 
@@ -100,6 +103,8 @@ curl -i 'http://127.0.0.1:3000/api/market/candles?range=7D'
 
 社区讨论正文不定时重新抓取 Twitter241：管理员添加或刷新时抓取并持久保存，普通浏览只读 Supabase。
 
+作者身份是独立流程：`pearl-web` 启动后会优先补齐已保存推文中缺失的昵称、账号和头像。旧记录首次确认推文作者 ID 后，五分钟内再从当前用户资料核对一次；此后资料完整时每 24 小时重新检查昵称和头像。后台每分钟最多领取 10 条到期来源，连续任务间隔至少一秒；资料缺字段或请求失败时会退避重试。普通访客不会触发 Twitter241 请求。核对任务只更新作者身份和自身调度字段，不改原文、译文、讨论标题或人工描述。Twitter241 无法核实作者时，保留已保存的身份值，页面使用账号/默认头像兜底。资料变化显示的是当前账号昵称和头像，不保证恢复发帖时的历史资料。
+
 ## 7. 本地开发和手动启动
 
 直接运行（行情默认用本地文件，无需配置）：
@@ -119,6 +124,8 @@ npm run dev
 ```sh
 sudo systemctl restart pearl-web pearl-collector
 ```
+
+此次作者身份更新只要求重启 `pearl-web`；若同事按照上面的完整更新流程同时重启采集器也可。保留服务器 `/etc/pearl/pearl.env` 中已有的 `SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY` 和 `TWITTER241_API_KEY`，不要将任何密钥提交到 GitHub。用 `sudo journalctl -u pearl-web -n 80 --no-pager` 查看 `identity <source-id> identity_bound`、`updated`、`partial_retry_scheduled` 或 `retry_scheduled`，再读取 `/api/community-discussions` 和对应 `/api/community-discussion?slug=...` 检查作者字段。首次补齐可能分多轮完成；若日志持续显示 `identity storage failed`，先确认第四个迁移已执行及服务角色权限。回滚旧代码前先停止新版服务；新增列和函数可以保留，不会妨碍旧版读取。不要删除讨论表或重跑初始建表迁移。
 
 重启不删除 Supabase 快照。采集中断或云服务器长期离线时，页面会标注旧数据，直到后台重新成功采集。
 
