@@ -3,6 +3,7 @@ import { createSupabaseClient, createSupabaseDiscussionStore } from "./supabaseS
 import { createDiscussionService, type DiscussionService } from "./service.js";
 import { createDiscussionHttpHandlers, type DiscussionHttpRequest, type DiscussionHttpResponse } from "./http.js";
 import { normalizeXStatusUrl } from "./urls.js";
+import { createTwitter241IdentityResolver } from "./identityResolver.js";
 
 type FetchResponse = { ok: boolean; json(): Promise<unknown> };
 type FetchLike = (input: string, init: { headers: Record<string, string> }) => Promise<FetchResponse>;
@@ -18,6 +19,7 @@ const twitter241Endpoint = "https://twitter241.p.rapidapi.com/tweet";
 const twitter241Host = "twitter241.p.rapidapi.com";
 
 export function createTwitter241SourceFetcher({ apiKey, fetch = globalThis.fetch as FetchLike, extract = extractCommunityDiscussion }: Twitter241Options) {
+  const identityResolver = apiKey ? createTwitter241IdentityResolver({ apiKey, fetch }) : null;
   return async (url: string) => {
     if (!apiKey) throw new Error("Twitter source is unavailable");
     const normalized = normalizeXStatusUrl(url);
@@ -26,7 +28,18 @@ export function createTwitter241SourceFetcher({ apiKey, fetch = globalThis.fetch
       headers: { "X-RapidAPI-Key": apiKey, "X-RapidAPI-Host": twitter241Host },
     });
     if (!response.ok) throw new Error("Twitter source is unavailable");
-    return extract(source, await response.json());
+    const payload = await response.json();
+    const extracted = extract(source, payload);
+    if (extracted.author && extracted.handle && extracted.avatarUrl) return extracted;
+    try {
+      const identity = await identityResolver!.resolve(source.url, null, payload);
+      return identity.userId ? {
+        ...extracted,
+        author: identity.author ?? extracted.author,
+        handle: identity.handle ?? extracted.handle,
+        avatarUrl: identity.avatarUrl ?? extracted.avatarUrl,
+      } : extracted;
+    } catch { return extracted; }
   };
 }
 
