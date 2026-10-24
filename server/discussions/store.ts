@@ -20,6 +20,8 @@ export type StoredSource = {
   xStatusId: string;
   url: string;
   role: SourceRole;
+  authorUserId?: string | null;
+  parentStatusId?: string | null;
   author: string | null;
   handle: string | null;
   avatarUrl: string | null;
@@ -78,6 +80,7 @@ export interface DiscussionStore {
   getDiscussionBySlug(slug: string): Promise<DiscussionRecord | undefined>;
   getSourceByStatusId(statusId: string): Promise<StoredSource | undefined>;
   getSourceForDiscussion(slug: string, statusId: string): Promise<StoredSource | undefined>;
+  updateSourceParent(slug: string, statusId: string, parentStatusId: string, onlyIfMissing: boolean): Promise<StoredSource>;
   insertSource(source: Omit<StoredSource, "id">): Promise<StoredSource>;
   createOrDuplicateResponse(source: ResponseInsertInput): Promise<ResponseInsertResult>;
   updateSource(source: StoredSource): Promise<StoredSource>;
@@ -146,7 +149,7 @@ export class InMemoryDiscussionStore implements DiscussionStore {
     const discussionId = `discussion-${this.nextId++}`;
     const primaryId = `source-${this.nextId++}`;
     const discussion: DiscussionRecord = { ...discussionInput, id: discussionId, primarySourceId: primaryId };
-    const primary: StoredSource = { ...primaryInput, id: primaryId, discussionId, role: "primary", position: 0 };
+    const primary: StoredSource = { ...primaryInput, id: primaryId, discussionId, role: "primary", parentStatusId: null, position: 0 };
     this.discussions.set(discussion.slug, clone(discussion));
     this.sources.set(primary.id, clone(primary));
     this.sourceIds.set(primary.xStatusId, primary.id);
@@ -168,6 +171,15 @@ export class InMemoryDiscussionStore implements DiscussionStore {
     const discussion = this.discussions.get(slug);
     const source = await this.getSourceByStatusId(statusId);
     return source && discussion?.id === source.discussionId ? source : undefined;
+  }
+
+  async updateSourceParent(slug: string, statusId: string, parentStatusId: string, onlyIfMissing: boolean) {
+    const source = await this.getSourceForDiscussion(slug, statusId);
+    if (!source) throw new Error(`Source not found in discussion: ${statusId}`);
+    if (onlyIfMissing && source.parentStatusId) return source;
+    const updated = { ...source, parentStatusId };
+    this.sources.set(updated.id, clone(updated));
+    return clone(updated);
   }
 
   async insertSource(source: Omit<StoredSource, "id">) {
@@ -200,7 +212,16 @@ export class InMemoryDiscussionStore implements DiscussionStore {
   async updateSourceIfUnchanged(source: StoredSource, expectedAttemptedAt: string) {
     const latest = this.sources.get(source.id);
     if (!latest || latest.lastAttemptedAt !== expectedAttemptedAt) return undefined;
-    return this.updateSource(source);
+    return this.updateSource({
+      ...latest,
+      publishedAt: source.publishedAt,
+      fetchedAt: source.fetchedAt,
+      lastAttemptedAt: source.lastAttemptedAt,
+      blocks: clone(source.blocks),
+      sourceType: source.sourceType,
+      fetchStatus: source.fetchStatus,
+      lastFetchError: source.lastFetchError,
+    });
   }
 
   async nextResponsePosition(discussionId: string) {

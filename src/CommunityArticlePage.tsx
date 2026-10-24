@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { SiteHeader } from "./SiteHeader";
 import { useLanguage } from "./i18n/Language";
 import { getCommunityDiscussion, originalXUrl, type CommunitySource } from "./data/communityDiscussion";
@@ -6,14 +6,14 @@ import { useCommunityResource } from "./useCommunityResource";
 import { communityDate } from "./CommunityDiscussionPage";
 import { CommunityAvatar, CommunityAuthorInfo } from "./CommunityIdentity";
 import { hasCompleteChineseTranslation, isEnglishBlock } from "../server/translation/content.js";
+import { authorSide, buildDiscussionTree, type DiscussionNode } from "./data/discussionTree";
 
-export function SourceMessage({ source, index }: { source: CommunitySource; index: number }) {
+export function SourceMessage({ source, side, threadControl }: { source: CommunitySource; side: "left" | "right"; threadControl?: ReactNode }) {
   const { t, language } = useLanguage();
   const [view, setView] = useState<"original" | "zh" | null>(null);
   const complete = hasCompleteChineseTranslation(source.blocks);
   const hasEnglish = source.blocks.some(isEnglishBlock);
   const chinese = complete && (view ?? (language === "zh" ? "zh" : "original")) === "zh";
-  const side = index % 2 === 0 ? "left" : "right";
   const avatar = <CommunityAvatar source={source} />;
   const url = originalXUrl(source.url);
   return <article className={`community-dialogue-message community-dialogue-${side} ${source.role === "primary" ? "community-dialogue-primary" : ""}`} data-testid="community-dialogue-message" data-side={side}>
@@ -33,16 +33,33 @@ export function SourceMessage({ source, index }: { source: CommunitySource; inde
         </div>
       </div>
       {url && <a href={url} target="_blank" rel="noreferrer">{t("在 X 查看原文")} ↗</a>}
+      {threadControl}
     </div>
     {side === "right" && avatar}
   </article>;
+}
+
+function ThreadBranch({ node, primary, depth }: { node: DiscussionNode; primary: CommunitySource | null; depth: number }) {
+  const { language } = useLanguage();
+  const [expanded, setExpanded] = useState(false);
+  const childCount = node.children.length;
+  const childId = `discussion-children-${node.source.xStatusId}`;
+  const label = language === "zh"
+    ? `${expanded ? "收起" : "展开"} ${childCount} 条回应`
+    : `${expanded ? "Hide" : "Show"} ${childCount} ${childCount === 1 ? "reply" : "replies"}`;
+  return <div className={`community-thread-branch ${depth >= 3 ? "community-thread-deep" : ""}`}>
+    <SourceMessage source={node.source} side={authorSide(node.source, primary)} threadControl={childCount > 0 && <button className="community-thread-toggle" type="button" aria-expanded={expanded} aria-controls={childId} onClick={() => setExpanded(value => !value)}>{label} <span aria-hidden="true">{expanded ? "−" : "+"}</span></button>} />
+    {expanded && <div className="community-thread-children" id={childId} role="group" aria-label={language === "zh" ? `${node.source.author ?? "这条推文"}的回应` : `Replies to ${node.source.author ?? "this post"}`}>
+      {node.children.map(child => <ThreadBranch key={child.source.xStatusId} node={child} primary={primary} depth={depth + 1} />)}
+    </div>}
+  </div>;
 }
 
 export default function CommunityArticlePage({ slug }: { slug: string }) {
   const { t, href } = useLanguage();
   const loader = useCallback((signal: AbortSignal) => getCommunityDiscussion(slug, signal), [slug]);
   const state = useCommunityResource(loader);
-  const sources = state.data ? [...state.data.sources.filter(source => source.role === "primary"), ...state.data.sources.filter(source => source.role === "response")] : [];
+  const tree = buildDiscussionTree(state.data?.sources ?? []);
   return <main className="site-shell community-article-page" data-testid="community-article-page">
     <SiteHeader />
     <section className="community-article-hero">
@@ -54,7 +71,8 @@ export default function CommunityArticlePage({ slug }: { slug: string }) {
     <section className="community-dialogue" aria-label={t("原文章与社区回应")} aria-busy={state.refreshing}>
       {state.loading && <p className="community-status" role="status">{t("正在读取完整讨论…")}</p>}
       {state.error && <div className="community-status" role="alert"><p>{state.error === "missing" ? t("这篇讨论不存在或尚未发布。") : t("社区讨论暂时无法读取，请稍后重试。")}</p><button type="button" disabled={state.refreshing} onClick={state.retry}>{t("重试")}</button></div>}
-      {sources.map((source, index) => <SourceMessage source={source} index={index} key={source.xStatusId} />)}
+      {tree.primary && <SourceMessage source={tree.primary} side="left" />}
+      {tree.roots.map(node => <ThreadBranch key={node.source.xStatusId} node={node} primary={tree.primary} depth={0} />)}
     </section>
   </main>;
 }

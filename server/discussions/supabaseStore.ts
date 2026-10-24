@@ -26,6 +26,7 @@ type Query = PromiseLike<QueryResult> & {
   update(values: Record<string, unknown>): Query;
   delete(): Query;
   eq(column: string, value: unknown): Query;
+  is(column: string, value: unknown): Query;
   in(column: string, values: unknown[]): Query;
   maybeSingle(): Query;
   single(): Query;
@@ -67,6 +68,8 @@ function mapDatabaseRow(kind: "discussion" | "source", row: Record<string, unkno
     xStatusId: String(row.x_status_id),
     url: String(row.url),
     role: row.role as StoredSource["role"],
+    authorUserId: typeof row.author_user_id === "string" ? row.author_user_id : null,
+    parentStatusId: typeof row.parent_x_status_id === "string" ? row.parent_x_status_id : null,
     author: row.author === null ? null : String(row.author),
     handle: row.handle === null ? null : String(row.handle),
     avatarUrl: row.avatar_url === null ? null : String(row.avatar_url),
@@ -87,6 +90,8 @@ function sourceToRow(source: Omit<StoredSource, "id"> | StoredSource): Record<st
     x_status_id: source.xStatusId,
     url: source.url,
     role: source.role,
+    author_user_id: source.authorUserId ?? null,
+    parent_x_status_id: source.parentStatusId ?? null,
     author: source.author,
     handle: source.handle,
     avatar_url: source.avatarUrl,
@@ -104,6 +109,8 @@ function sourceToRow(source: Omit<StoredSource, "id"> | StoredSource): Record<st
 function responseSourceToRpc(source: ResponseInsertInput): Record<string, unknown> {
   return {
     xStatusId: source.xStatusId,
+    authorUserId: source.authorUserId ?? null,
+    parentStatusId: source.parentStatusId ?? null,
     url: source.url,
     author: source.author,
     handle: source.handle,
@@ -213,6 +220,7 @@ export function createSupabaseDiscussionStore(client: unknown): DiscussionStore 
           status: input.status,
           primarySource: {
             xStatusId: input.primary.xStatusId,
+            authorUserId: input.primary.authorUserId ?? null,
             url: input.primary.url,
             author: input.primary.author,
             handle: input.primary.handle,
@@ -235,6 +243,18 @@ export function createSupabaseDiscussionStore(client: unknown): DiscussionStore 
     async getSourceForDiscussion(slug, statusId) {
       const [discussion, source] = await Promise.all([getDiscussionBySlug(slug), getSourceByStatusId(statusId)]);
       return discussion && source?.discussionId === discussion.id ? source : undefined;
+    },
+    async updateSourceParent(slug, statusId, parentStatusId, onlyIfMissing) {
+      const discussion = await getDiscussionBySlug(slug);
+      if (!discussion) throw new Error(`Discussion not found: ${slug}`);
+      let query = database.from("discussion_sources").update({ parent_x_status_id: parentStatusId })
+        .eq("discussion_id", discussion.id).eq("x_status_id", statusId);
+      if (onlyIfMissing) query = query.is("parent_x_status_id", null);
+      const row = await rows<Record<string, unknown> | null>(query.select("*").maybeSingle());
+      if (row) return mapDatabaseRow("source", row);
+      const latest = await getSourceByStatusId(statusId);
+      if (onlyIfMissing && latest?.discussionId === discussion.id) return latest;
+      throw new Error(`Source not found in discussion: ${statusId}`);
     },
     async insertSource(source) {
       const row = await rows<Record<string, unknown>>(database.from("discussion_sources").insert(sourceToRow(source)).select("*").single());

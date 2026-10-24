@@ -15,23 +15,19 @@
 .supply-history-legend { display: flex; flex-wrap: wrap; gap: 17px; margin: 24px 0 3px; color: var(--ink-soft); font-size: 11px; }
 .supply-history-legend span { display: inline-flex; align-items: center; gap: 7px; }
 .supply-history-legend span::before { content: ""; width: 9px; height: 9px; border-radius: 2px; }
-.supply-history-legend .issued::before { background: rgba(168, 63, 98, .7); }
-.supply-history-legend .unissued::before { background: rgba(89, 115, 133, .35); }
+.supply-history-legend .issued::before { background: #d486a3; }
 .supply-history-plot { position: relative; }
 .supply-history-plot svg { display: block; width: 100%; height: auto; cursor: crosshair; touch-action: pan-y; }
-.supply-history-grid line { stroke: rgba(40, 53, 55, .13); stroke-dasharray: 2 4; }
 .supply-history-grid text, .supply-history-axis text, .supply-history-unit { fill: #7b8283; font-family: var(--font-mono); font-size: 10px; }
-.supply-history-unissued { fill: rgba(89, 115, 133, .15); }
-.supply-history-issued { fill: rgba(168, 63, 98, .46); }
-.supply-history-boundary { fill: none; stroke: #a83f62; stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
-.supply-history-crosshair line { stroke: rgba(36, 49, 52, .55); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
-.supply-history-crosshair circle { fill: #a83f62; stroke: #fffefa; stroke-width: 2; vector-effect: non-scaling-stroke; }
-.supply-history-tooltip { position: absolute; z-index: 2; top: 9px; right: 12px; display: grid; gap: 7px; min-width: min(245px, calc(100% - 24px)); padding: 12px 13px; border: 1px solid rgba(42, 51, 52, .17); border-radius: 11px; background: rgba(255, 254, 250, .97); box-shadow: 0 8px 24px rgba(36, 45, 45, .12); pointer-events: none; }
+.supply-history-frame { fill: none; stroke: rgba(168, 63, 98, .28); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.supply-history-boundary { fill: none; stroke: #d486a3; stroke-width: 2.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.supply-history-crosshair line { stroke: rgba(168, 63, 98, .55); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.supply-history-crosshair circle { fill: #d486a3; stroke: #fffefa; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.supply-history-tooltip { position: absolute; z-index: 2; top: 9px; right: 12px; display: grid; gap: 7px; min-width: min(205px, calc(100% - 24px)); padding: 12px 13px; border: 1px solid rgba(42, 51, 52, .17); border-radius: 11px; background: rgba(255, 254, 250, .97); box-shadow: 0 8px 24px rgba(36, 45, 45, .12); pointer-events: none; }
 .supply-history-tooltip > b { color: var(--ink); font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
 .supply-history-tooltip > span { display: grid; grid-template-columns: 8px auto 1fr; gap: 6px; align-items: center; color: var(--muted); font-size: 11px; }
 .supply-history-tooltip i { width: 7px; height: 7px; border-radius: 2px; }
-.supply-history-tooltip i.issued { background: #a83f62; }
-.supply-history-tooltip i.unissued { background: #8196a3; }
+.supply-history-tooltip i.issued { background: #d486a3; }
 .supply-history-tooltip strong { justify-self: end; color: var(--ink); font-family: var(--font-mono); font-size: 11px; font-weight: 500; white-space: nowrap; }
 .supply-history-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 16px; margin-top: 6px; }
 .supply-history-footer p, .supply-history-notice { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }

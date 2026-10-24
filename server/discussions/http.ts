@@ -27,6 +27,8 @@ const createBody = z.object({
   status: z.enum(["draft", "published"]).optional(),
 }).strict();
 const sourceBody = z.object({ urls: z.array(z.string().url()).min(1).max(50) }).strict();
+const statusId = z.string().regex(/^[0-9]+$/);
+const parentBody = z.object({ parentStatusId: statusId }).strict();
 
 function value(input: string | string[] | undefined): string | undefined {
   return typeof input === "string" ? input : undefined;
@@ -57,6 +59,7 @@ function mapFailure(cause: unknown): DiscussionHttpResponse {
   const message = cause instanceof Error ? cause.message : "";
   if (/not found/i.test(message)) return error("not_found", 404);
   if (/expected an x status url/i.test(message)) return error("invalid_request", 400);
+  if (/cycle|itself/i.test(message)) return error("invalid_request", 400);
   return error("discussion_unavailable", 503);
 }
 
@@ -167,6 +170,25 @@ export function createDiscussionHttpHandlers({ service, adminToken, compare = ti
       } catch (cause) {
         return mapFailure(cause);
       }
+    },
+    async handleRepairSourceParent(request: DiscussionHttpRequest): Promise<DiscussionHttpResponse> {
+      const authenticationFailure = protectedRoute(request, adminToken, compare);
+      if (authenticationFailure) return authenticationFailure;
+      const discussionSlug = request.params?.slug;
+      const parsedId = statusId.safeParse(request.params?.statusId);
+      if (!discussionSlug || !parsedId.success) return error("invalid_request", 400);
+      try { return { status: 200, body: { source: safeSource(await service.repairSourceParent(discussionSlug, parsedId.data)) } }; }
+      catch (cause) { return mapFailure(cause); }
+    },
+    async handleSetSourceParent(request: DiscussionHttpRequest): Promise<DiscussionHttpResponse> {
+      const authenticationFailure = protectedRoute(request, adminToken, compare);
+      if (authenticationFailure) return authenticationFailure;
+      const discussionSlug = request.params?.slug;
+      const parsedId = statusId.safeParse(request.params?.statusId);
+      const parsed = parentBody.safeParse(request.body);
+      if (!discussionSlug || !parsedId.success || !parsed.success) return error("invalid_request", 400);
+      try { return { status: 200, body: { source: safeSource(await service.setSourceParent(discussionSlug, parsedId.data, parsed.data.parentStatusId)) } }; }
+      catch (cause) { return mapFailure(cause); }
     },
   };
 }

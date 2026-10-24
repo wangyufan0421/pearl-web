@@ -14,6 +14,7 @@ class FakeQuery implements PromiseLike<Result> {
   update(...args: unknown[]) { this.calls.push({ method: "update", args }); return this; }
   delete(...args: unknown[]) { this.calls.push({ method: "delete", args }); return this; }
   eq(...args: unknown[]) { this.calls.push({ method: "eq", args }); return this; }
+  is(...args: unknown[]) { this.calls.push({ method: "is", args }); return this; }
   in(...args: unknown[]) { this.calls.push({ method: "in", args }); return this; }
   maybeSingle() { this.calls.push({ method: "maybeSingle", args: [] }); return this; }
   single() { this.calls.push({ method: "single", args: [] }); return this; }
@@ -106,6 +107,29 @@ describe("Supabase discussion store configuration", () => {
     expect(fake.rpcCalls).toEqual([{ name: "create_discussion_with_primary", args: { input: expect.any(Object) } }]);
     expect(fake.rpcCalls[0].args!.input).toMatchObject({ primarySource: { xStatusId: "100", avatarUrl: null } });
     expect(result).toMatchObject({ discussion: { primarySourceId: "source-1" }, primary: { xStatusId: "100", fetchedAt: "2026-01-01T01:00:00.000Z" } });
+  });
+
+  it("maps saved parent and author IDs into a public discussion detail", async () => {
+    const replyRow = { ...primaryRow, id: "source-2", x_status_id: "200", role: "response", author_user_id: "77", parent_x_status_id: "100" };
+    const fake = new FakeSupabase({ data: null, error: null }, [
+      { data: discussionRow, error: null },
+      { data: [{ ...primaryRow, author_user_id: "42", parent_x_status_id: null }, replyRow], error: null },
+    ]);
+    const detail = await createSupabaseDiscussionStore(fake).getPublishedDiscussion("wtf-is-pearl");
+    expect(detail?.sources).toMatchObject([
+      { xStatusId: "100", authorUserId: "42", parentStatusId: null },
+      { xStatusId: "200", authorUserId: "77", parentStatusId: "100" },
+    ]);
+  });
+
+  it("repairs only a missing parent column without rewriting archived content", async () => {
+    const fake = new FakeSupabase({ data: null, error: null }, [
+      { data: discussionRow, error: null },
+      { data: { ...primaryRow, id: "source-2", x_status_id: "200", role: "response", parent_x_status_id: "100" }, error: null },
+    ]);
+    await createSupabaseDiscussionStore(fake).updateSourceParent("wtf-is-pearl", "200", "100", true);
+    expect(fake.tableCalls[1].query.calls).toContainEqual({ method: "update", args: [{ parent_x_status_id: "100" }] });
+    expect(fake.tableCalls[1].query.calls).toContainEqual({ method: "is", args: ["parent_x_status_id", null] });
   });
 
   it("delegates response idempotency and position allocation to the response RPC", async () => {

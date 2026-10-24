@@ -51,6 +51,22 @@ describe("extractCommunityDiscussion", () => {
     const result = extractCommunityDiscussion(normalized, rootTweet({ rest_id: normalized.xStatusId, core: { user_results: { result: { core: { name: "blocmates.", screen_name: "blocmates" }, avatar: { image_url: "https://pbs.twimg.com/profile_images/avatar.jpg" }, legacy: {} } } }, legacy: { full_text: "Original body" } }));
     expect(result).toMatchObject({ author: "blocmates.", handle: "blocmates", avatarUrl: "https://pbs.twimg.com/profile_images/avatar.jpg" });
   });
+  it("extracts only the requested tweet's direct reply target", () => {
+    const result = extractCommunityDiscussion(normalized, rootTweet({
+      rest_id: normalized.xStatusId,
+      core: { user_results: { result: { rest_id: "42", core: { name: "Root", screen_name: "root" } } } },
+      legacy: { full_text: "A reply", in_reply_to_status_id_str: "200", quoted_status_result: { result: { rest_id: "999", legacy: { in_reply_to_status_id_str: "300" } } } },
+    }));
+    expect(result).toMatchObject({ authorUserId: "42", parentStatusId: "200" });
+  });
+  it("accepts a safe numeric reply target when Twitter241 omits the string variant", () => {
+    const result = extractCommunityDiscussion(normalized, rootTweet({ rest_id: normalized.xStatusId, legacy: { full_text: "A reply", in_reply_to_status_id: 200 } }));
+    expect(result.parentStatusId).toBe("200");
+  });
+  it("does not invent a rounded X ID from an unsafe JSON number", () => {
+    const result = extractCommunityDiscussion(normalized, rootTweet({ rest_id: normalized.xStatusId, legacy: { full_text: "A reply", in_reply_to_status_id: 9007199254740992 } }));
+    expect(result.parentStatusId).toBeNull();
+  });
   it("does not persist an unverified account from the source URL when user metadata is unavailable", () => {
     expect(extractCommunityDiscussion(normalized, rootTweet({ rest_id: normalized.xStatusId, legacy: { full_text: "Original body" } })).handle).toBeNull();
   });
@@ -77,10 +93,12 @@ describe("extractCommunityDiscussion", () => {
       xStatusId: normalized.xStatusId,
       url: normalized.url,
       author: "Blocmates",
+      authorUserId: null,
       handle: "blocmates",
       avatarUrl: "https://images.example/avatar.jpg",
       publishedAt: "Sat Oct 11 10:30:00 +0000 2026",
       fetchedAt: "2026-10-11T12:00:00.000Z",
+      parentStatusId: null,
       blocks: [
         { id: "heading-1", kind: "heading", text: "Opening" },
         { id: "quote-1", kind: "quote", text: "The full quote." },

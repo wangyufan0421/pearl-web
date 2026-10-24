@@ -18,6 +18,7 @@ describe("bilingual site", () => {
     // Allow requests to settle so that error and fallback copy are checked too.
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 25)); });
     expect(document.body.textContent).not.toMatch(/[\u3400-\u9fff]/);
+    expect(document.body.textContent).not.toMatch(/\bPRL\b/);
     for (const element of document.querySelectorAll("[aria-label], [title], [alt]")) {
       if (element.getAttribute("lang") === "zh-CN") continue;
       expect([element.getAttribute("aria-label"), element.getAttribute("title"), element.getAttribute("alt")].join(" ")).not.toMatch(/[\u3400-\u9fff]/);
@@ -66,7 +67,7 @@ describe("bilingual site", () => {
   it("translates live OHLC tooltip labels and dates without changing values", () => {
     window.history.replaceState({}, "", "/en/overview");
     render(<LanguageProvider><CandlestickChart zoom={1} candles={Array.from({ length: 4 }, (_, index) => ({ timestamp: new Date(Date.UTC(2026, 9, 8, index)), open: 1.2, high: 1.6, low: 1.1, close: 1.5, volume: 12 }))} /></LanguageProvider>);
-    const chart = screen.getByRole("img", { name: "Lighter PRL perpetual candlestick chart" });
+    const chart = screen.getByRole("img", { name: "Lighter PEARL perpetual candlestick chart" });
     Object.defineProperty(chart, "getBoundingClientRect", { value: () => ({ left: 0, width: 660 }) });
     fireEvent.mouseMove(chart, { clientX: 500 });
     expect(screen.getByText("Open $1.20")).toBeInTheDocument();
@@ -91,8 +92,8 @@ describe("bilingual site", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "English" }));
     expect(window.location.pathname).toBe("/en/valuation");
-    expect(screen.getByRole("heading", { name: "PRL data", level: 1 })).toBeInTheDocument();
-    expect(document.querySelector('meta[name="description"]')).toHaveAttribute("content", "Explore PRL reference prices, market cap, relative BTC measures and issuance data.");
+    expect(screen.getByRole("heading", { name: "PEARL data", level: 1 })).toBeInTheDocument();
+    expect(document.querySelector('meta[name="description"]')).toHaveAttribute("content", "Explore PEARL reference prices, market cap, relative BTC measures and issuance data.");
     storage.mockRestore();
   });
   it("uses overview metadata for a legacy overview bookmark", () => {

@@ -12,6 +12,11 @@ export function createDiscussionRouter(environment: Record<string, string | unde
       if (adminMatch[2] && method === "POST") return handlers.handleManageDiscussion(adminRequest);
       if (!adminMatch[2] && method === "GET") return handlers.handleAdminDetail(adminRequest);
     }
+    const parentMatch = /^\/api\/admin\/community-discussions\/([a-z0-9-]+)\/sources\/([0-9]+)\/parent(\/repair)?$/.exec(url.pathname);
+    if (parentMatch && method === "POST") {
+      const parentRequest = toDiscussionHttpRequest({ headers, body }, { slug: parentMatch[1], statusId: parentMatch[2] });
+      return parentMatch[3] ? handlers.handleRepairSourceParent(parentRequest) : handlers.handleSetSourceParent(parentRequest);
+    }
     const match = /^\/api\/admin\/community-discussions\/([a-z0-9-]+)\/sources(?:\/([0-9]+)\/refresh)?$/.exec(url.pathname);
     const request = toDiscussionHttpRequest({ body, headers, query }, match ? { slug: match[1], statusId: match[2] } : undefined);
     if (url.pathname === "/api/community-discussions" && method === "GET") return handlers.handleListDiscussions(request);

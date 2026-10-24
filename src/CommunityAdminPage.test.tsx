@@ -69,6 +69,25 @@ describe("community administrator page", () => {
     expect(await screen.findByLabelText("Response X links")).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: "@source" })).toBeInTheDocument();
   });
+  it("repairs and manually assigns parent links for already-saved responses", async () => {
+    window.history.replaceState({}, "", `/en/admin/community-discussions/${card.slug}`);
+    const saved = { ...source, xStatusId: "124", role: "response", authorUserId: "2", parentStatusId: null, position: 1, blocks: [{ id: "a", kind: "paragraph", text: "A reply" }] };
+    const previous = vi.mocked(fetch).getMockImplementation()!;
+    vi.mocked(fetch).mockImplementation((input, init) => {
+      const path = String(input);
+      if (path === `/api/admin/community-discussions/${card.slug}`) return Promise.resolve(response({ ...detail, sources: [source, saved], status: "published" }));
+      if (path.endsWith("/sources/124/parent/repair")) return Promise.resolve(response({ source: { ...saved, parentStatusId: "123" } }));
+      if (path.endsWith("/sources/124/parent")) return Promise.resolve(response({ source: { ...saved, parentStatusId: "123" } }));
+      return previous(input, init);
+    });
+    render(<App />); await authenticate();
+    const selector = await screen.findByRole("combobox", { name: "Parent post for 124" });
+    fireEvent.click(screen.getByRole("button", { name: "Scan X reply link for 124" }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(`/api/admin/community-discussions/${card.slug}/sources/124/parent/repair`, expect.objectContaining({ method: "POST" })));
+    fireEvent.change(selector, { target: { value: "123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save parent for 124" }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(`/api/admin/community-discussions/${card.slug}/sources/124/parent`, expect.objectContaining({ method: "POST", body: JSON.stringify({ parentStatusId: "123" }) })));
+  });
   it("shows only verification before admitting an administrator", () => {
     render(<App />);
     expect(screen.getByRole("heading", { name: "Community administration", level: 1 })).toBeInTheDocument();

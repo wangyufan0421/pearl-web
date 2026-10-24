@@ -7,6 +7,8 @@ const mocked = vi.hoisted(() => ({
     handleCreateDiscussion: vi.fn(),
     handleAddSources: vi.fn(),
     handleRefreshSource: vi.fn(),
+    handleRepairSourceParent: vi.fn(),
+    handleSetSourceParent: vi.fn(),
     handleVerifyAdmin: vi.fn(),
   },
 }));
@@ -74,5 +76,15 @@ describe("community discussion Vercel adapters", () => {
     expect(mocked.handlers.handleRefreshSource).toHaveBeenCalledWith(expect.objectContaining({ params: { slug: "published", statusId: "1" } }));
     expect(refresh.response.status).toHaveBeenCalledWith(200);
     expect(refresh.json).toHaveBeenCalledWith({ source: { xStatusId: "1" } });
+  });
+  it("forwards parent repair and override through protected Vercel adapters", async () => {
+    const { default: repairHandler } = await import("../../api/admin/community-discussions/[slug]/sources/[statusId]/parent/repair");
+    const { default: parentHandler } = await import("../../api/admin/community-discussions/[slug]/sources/[statusId]/parent");
+    mocked.handlers.handleRepairSourceParent.mockResolvedValue({ status: 200, body: { source: { parentStatusId: "1" } } });
+    mocked.handlers.handleSetSourceParent.mockResolvedValue({ status: 200, body: { source: { parentStatusId: "1" } } });
+    await repairHandler({ method: "POST", query: { slug: "topic", statusId: "2" }, body: {} }, response().response);
+    await parentHandler({ method: "POST", query: { slug: "topic", statusId: "2" }, body: { parentStatusId: "1" } }, response().response);
+    expect(mocked.handlers.handleRepairSourceParent).toHaveBeenCalledWith(expect.objectContaining({ params: { slug: "topic", statusId: "2" } }));
+    expect(mocked.handlers.handleSetSourceParent).toHaveBeenCalledWith(expect.objectContaining({ body: { parentStatusId: "1" } }));
   });
 });

@@ -148,6 +148,66 @@ describe("discussion service", () => {
     expect(discussion!.sources.map((item) => item.xStatusId)).toEqual([primary.xStatusId, early.xStatusId, late.xStatusId]);
   });
 
+  it("persists the direct parent and stable author ID of a manually added reply", async () => {
+    const { fetcher, service } = setup();
+    const primary = source("100", { authorUserId: "42" });
+    const reply = source("200", { authorUserId: "77", parentStatusId: "100" });
+    fetcher.items.set("100", primary); fetcher.items.set("200", reply);
+    await service.createDiscussion({ primaryUrl: primary.url });
+    await service.addSources("wtf-is-pearl", [reply.url]);
+    const saved = await service.getPublishedDiscussion("wtf-is-pearl");
+    expect(saved?.sources).toMatchObject([
+      { xStatusId: "100", authorUserId: "42", parentStatusId: null },
+      { xStatusId: "200", authorUserId: "77", parentStatusId: "100" },
+    ]);
+  });
+
+  it("repairs an old reply's parent without changing its saved text, translation, or identity", async () => {
+    const { fetcher, service } = setup();
+    const primary = source("100");
+    const reply = source("200", { blocks: [{ id: "a", kind: "paragraph", text: "Saved", translationZh: "已保存" }] });
+    fetcher.items.set("100", primary); fetcher.items.set("200", reply);
+    await service.createDiscussion({ primaryUrl: primary.url });
+    await service.addSources("wtf-is-pearl", [reply.url]);
+    fetcher.items.set("200", source("200", { parentStatusId: "100", author: "Changed", blocks: [{ id: "a", kind: "paragraph", text: "Changed" }] }));
+    const repaired = await service.repairSourceParent("wtf-is-pearl", "200");
+    expect(repaired).toMatchObject({ parentStatusId: "100", author: "Blocmates", blocks: [{ text: "Saved", translationZh: "已保存" }] });
+  });
+
+  it("keeps content refresh separate from parent repair for an old reply", async () => {
+    const { fetcher, service } = setup();
+    fetcher.items.set("100", source("100")); fetcher.items.set("200", source("200"));
+    await service.createDiscussion({ primaryUrl: source("100").url });
+    await service.addSources("wtf-is-pearl", [source("200").url]);
+    fetcher.items.set("200", source("200", { parentStatusId: "100", blocks: [{ id: "new", kind: "paragraph", text: "Updated" }] }));
+    expect((await service.refreshSource("wtf-is-pearl", "200")).parentStatusId).toBeNull();
+    expect((await service.repairSourceParent("wtf-is-pearl", "200")).parentStatusId).toBe("100");
+  });
+
+  it("does not overwrite a parent assigned during a concurrent content refresh", async () => {
+    const { fetcher, service, store } = setup();
+    fetcher.items.set("100", source("100")); fetcher.items.set("200", source("200"));
+    await service.createDiscussion({ primaryUrl: source("100").url });
+    await service.addSources("wtf-is-pearl", [source("200").url]);
+    const commit = store.updateSourceIfUnchanged.bind(store);
+    vi.spyOn(store, "updateSourceIfUnchanged").mockImplementationOnce(async (replacement, expected) => {
+      await store.updateSourceParent("wtf-is-pearl", "200", "100", false);
+      return commit(replacement, expected);
+    });
+    expect((await service.refreshSource("wtf-is-pearl", "200")).parentStatusId).toBe("100");
+  });
+
+  it("allows only a saved same-discussion non-cyclic source as a manual parent", async () => {
+    const { fetcher, service } = setup();
+    for (const id of ["100", "200", "300"]) fetcher.items.set(id, source(id));
+    await service.createDiscussion({ primaryUrl: source("100").url });
+    await service.addSources("wtf-is-pearl", [source("200").url, source("300").url]);
+    expect((await service.setSourceParent("wtf-is-pearl", "300", "200")).parentStatusId).toBe("200");
+    await expect(service.setSourceParent("wtf-is-pearl", "200", "300")).rejects.toThrow("cycle");
+    await expect(service.setSourceParent("wtf-is-pearl", "200", "200")).rejects.toThrow("itself");
+    await expect(service.setSourceParent("wtf-is-pearl", "200", "999")).rejects.toThrow("Parent not found");
+  });
+
   it("records a refresh failure without erasing an older successful snapshot", async () => {
     const { fetcher, service } = setup();
     const primary = source("100");

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createRequestCache } from "./runtime";
+import { createRequestCache, loadComparisonSeries, refreshInterval, resetDataRuntime } from "./runtime";
 
 describe("createRequestCache", () => {
   it("retains a successful snapshot if the saved-data API temporarily fails", async () => {
@@ -31,5 +31,39 @@ describe("createRequestCache", () => {
     now = 30_000;
     await cache.get("network", 30_000, loader);
     expect(loader).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("comparison series cache", () => {
+  it("retries an unavailable comparison shortly after the collector creates its first snapshot", async () => {
+    let now = 0;
+    const cache = createRequestCache(() => now);
+    const unavailable = { data: { points: [] }, sourceKind: "fallback" };
+    const saved = { data: { points: [{ value: 42 }] }, sourceKind: "live" };
+    const loader = vi.fn().mockResolvedValueOnce(unavailable).mockResolvedValueOnce(saved);
+
+    expect(await cache.get("comparison:energy", refreshInterval.slow, loader, false, refreshInterval.fast)).toBe(unavailable);
+    now = refreshInterval.fast - 1;
+    await cache.get("comparison:energy", refreshInterval.slow, loader, false, refreshInterval.fast);
+    expect(loader).toHaveBeenCalledTimes(1);
+    now = refreshInterval.fast;
+    expect(await cache.get("comparison:energy", refreshInterval.slow, loader, false, refreshInterval.fast)).toBe(saved);
+    now += refreshInterval.fast;
+    await cache.get("comparison:energy", refreshInterval.slow, loader, false, refreshInterval.fast);
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  it("reuses the stored 15-minute model snapshot between page refreshes", async () => {
+    resetDataRuntime();
+    const fetcher = vi.fn(async () => new Response(JSON.stringify([{ meta: { id: "prl_energy", label: "Pearl network power", unit: "MW" }, points: [{ t: 1_799_999_000, v: 50 }] }]), { status: 200 }));
+    vi.stubGlobal("fetch", fetcher);
+    try {
+      await loadComparisonSeries("prl_energy");
+      await loadComparisonSeries("prl_energy");
+      expect(fetcher).toHaveBeenCalledTimes(1);
+      expect(refreshInterval.slow).toBe(15 * 60_000);
+      await loadComparisonSeries("prl_energy", true);
+      expect(fetcher).toHaveBeenCalledTimes(2);
+    } finally { vi.restoreAllMocks(); vi.unstubAllGlobals(); resetDataRuntime(); }
   });
 });

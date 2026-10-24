@@ -14,15 +14,40 @@ const holders = z.object({ funded: n, held_prl: n, mined_prl: n, gini: n, top1_p
 const candles = z.object({ code: z.literal(200), c: z.array(z.object({ t: n, o: n, h: n, l: n, c: n, v: n })).min(1) });
 
 export const metricIds = ["price", "cost_allin", "txs", "onchain_volume", "funded_addresses", "top10_share", "fdv_vs_btc", "prl_btc", "marginal_cost", "crossover", "volume", "supply", "mcap_vs_btc", "inflation", "miner_revenue"] as const;
+export const comparisonMetricIds = ["prl_energy", "btc_energy", "energy_vs_btc", "prl_machines", "btc_machines", "prl_capex", "btc_capex", "prl_issuance_usd", "btc_issuance_usd"] as const;
+export const peerMarketCapAssets = ["btc", "bch", "fil", "zec"] as const;
+const comparisonMetricUnits = { prl_energy: "MW", btc_energy: "MW", energy_vs_btc: "%", prl_machines: "GPUs", btc_machines: "ASICs", prl_capex: "USD", btc_capex: "USD", prl_issuance_usd: "USD/day", btc_issuance_usd: "USD/day" } satisfies Record<(typeof comparisonMetricIds)[number], string>;
 export const activityIds = "txs,onchain_volume,velocity,tx_fees,tx_fees_usd,new_addresses,funded_addresses,supply";
 export type Dataset = { key: string; interval: number; url(now: number): string; validate(payload: unknown): void };
 const fast = 30_000; const medium = 300_000; const slow = 900_000;
+const daily = 6 * 60 * 60_000;
 function prl(key: string, interval: number, path: string, schema: z.ZodType): Dataset {
   return { key, interval, url: () => `https://prlstats.com${path}`, validate: payload => { schema.parse(payload); } };
 }
 export const datasets: Dataset[] = [
   prl("network", fast, "/api/network", network),
   ...metricIds.map(id => prl(`metric:${id}`, fast, `/api/series?m=${id}`, series.refine(rows => rows.length === 1 && rows[0].meta.id === id, "Metric identity mismatch"))),
+  ...comparisonMetricIds.map(id => prl(`metric:${id}`, slow, `/api/series?m=${id}`, series.refine(rows => rows.length === 1 && rows[0].meta.id === id && rows[0].meta.unit === comparisonMetricUnits[id], "Comparison metric identity or unit mismatch"))),
+  prl("metric:mcap", slow, "/api/series?m=mcap", series.refine(rows => rows.length === 1 && rows[0].meta.id === "mcap" && rows[0].meta.unit === "USD", "Market cap identity or unit mismatch")),
+  ...peerMarketCapAssets.map(asset => {
+    const metric = asset === "fil" ? "CapMrktEstUSD" : "CapMrktCurUSD";
+    const row = z.object({ asset: z.literal(asset), time: z.string().datetime({ offset: true }), [metric]: z.string().refine(value => Number.isFinite(Number(value)) && Number(value) > 0) });
+    return {
+      key: `peer-mcap:${asset}`, interval: daily,
+      url: () => `https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=${asset}&metrics=${metric}&frequency=1d&page_size=10000`,
+      validate(payload: unknown) {
+        z.object({ data: z.array(row).min(1), next_page_url: z.union([z.null(), z.undefined()]).optional() }).parse(payload);
+      },
+    } satisfies Dataset;
+  }),
+  {
+    key: "peer-mcap:tao", interval: daily,
+    url: () => "https://api.coingecko.com/api/v3/coins/bittensor/market_chart?vs_currency=usd&days=365",
+    validate(payload: unknown) {
+      z.object({ market_caps: z.array(z.tuple([n.int().positive(), n.positive()])).min(1) }).parse(payload);
+    },
+  },
+  prl("metric:hashrate", medium, "/api/series?m=hashrate", series.refine(rows => rows.length === 1 && rows[0].meta.id === "hashrate", "Metric identity mismatch")),
   ...(["7D", "30D"] as const).map(range => ({
     key: `candles:${range}`, interval: fast,
     url(now: number) {
@@ -43,6 +68,7 @@ export function requestedDataset(url: URL): Dataset | undefined {
   const path = url.pathname;
   let key: string | undefined;
   if (path === "/api/market/candles") key = `candles:${url.searchParams.get("range")}`;
+  else if (path === "/api/market/market-cap") key = `peer-mcap:${url.searchParams.get("asset")}`;
   else if (path === "/api/prlstats/api/series") {
     const metric = url.searchParams.get("m");
     key = metric === activityIds ? "activity" : `metric:${metric}`;

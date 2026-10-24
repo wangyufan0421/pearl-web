@@ -8,7 +8,7 @@ export function createMarketApiPlugin(environment: Record<string, string | undef
     configureServer(server: { middlewares: { use(handler: (request: { url?: string; method?: string }, response: { statusCode: number; setHeader(name: string, value: string): void; end(body: string): void }, next: () => void) => void): void } }) {
       server.middlewares.use((request, response, next) => {
         const url = new URL(request.url ?? "/", "http://localhost");
-        if (!url.pathname.startsWith("/api/prlstats/") && url.pathname !== "/api/market/candles") return next();
+        if (!url.pathname.startsWith("/api/prlstats/") && url.pathname !== "/api/market/candles" && url.pathname !== "/api/market/market-cap") return next();
         void (async () => {
           const result = request.method !== "GET"
             ? { status: 405, headers: {}, body: { error: "method_not_allowed" } }

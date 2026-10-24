@@ -22,7 +22,7 @@ export function createApplication({ store, staticDir, environment = process.env 
     void (async () => {
       const url = new URL(request.url ?? "/", "http://localhost"); const method = request.method ?? "GET";
       if (url.pathname === "/api/health") return json(response, 200, { status: "ok", role: "web" });
-      if (url.pathname.startsWith("/api/prlstats/") || url.pathname === "/api/market/candles") {
+      if (url.pathname.startsWith("/api/prlstats/") || url.pathname === "/api/market/candles" || url.pathname === "/api/market/market-cap") {
         if (method !== "GET") return json(response, 405, { error: "method_not_allowed" });
         const result = await market(url); return json(response, result.status, result.body, result.headers);
       }

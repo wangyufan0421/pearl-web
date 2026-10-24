@@ -22,7 +22,7 @@ function formatCompact(value: number, digits = 2) {
   return new Intl.NumberFormat(formatLocale(), { notation: "compact", maximumFractionDigits: digits }).format(value);
 }
 
-function formatPrl(value: number) { return `${formatCompact(value)} PRL`; }
+function formatPrl(value: number) { return `${formatCompact(value)} PEARL`; }
 function formatPercent(value: number, digits = 3) { return `${value.toFixed(digits)}%`; }
 function formatSats(value: number) { return `${new Intl.NumberFormat(formatLocale(), { maximumFractionDigits: 0 }).format(value)} sats`; }
 
@@ -32,11 +32,11 @@ export function chartLatestValue(points: MetricPoint[], formatter: (value: numbe
 }
 
 const chartOptions: { id: ChartMetricId; label: string; source: string; formatter: (value: number) => string }[] = [
-  { id: "prl_btc", label: "PRL priced in Bitcoin", source: "PRL / BTC · prlstats 历史序列", formatter: formatSats },
+  { id: "prl_btc", label: "PEARL priced in Bitcoin", source: "PEARL / BTC · prlstats 历史序列", formatter: formatSats },
   { id: "mcap_vs_btc", label: "Pearl market cap vs Bitcoin", source: "流通市值 / BTC · prlstats 历史序列", formatter: formatPercent },
   { id: "fdv_vs_btc", label: "Pearl FDV vs Bitcoin", source: "FDV / BTC · prlstats 历史序列", formatter: formatPercent },
   { id: "volume", label: "24h volume", source: "24 小时成交量 · prlstats 历史序列", formatter: formatUsd },
-  { id: "cost_allin", label: "PRL挖矿成本", source: "全成本 / PRL · prlstats 历史序列", formatter: formatUsd },
+  { id: "cost_allin", label: "PEARL挖矿成本", source: "全成本 / PEARL · prlstats 历史序列", formatter: formatUsd },
 ];
 
 function latest(result: DataResult<MetricSeries> | undefined) { return result?.data.points.at(-1)?.value; }
@@ -153,23 +153,23 @@ export default function ValuationPage() {
     <SiteHeader />
     <div className="valuation-wrap">
       <DataStatusSummary items={[{ label: "网络概览", result: network }, ...metricIds.map(id => ({ label: metricLabels[id], result: metrics[id] }))]} />
-      <header className="valuation-intro"><p>PEARL / DATA</p><h1>{t("PRL 数据汇总")}</h1><span>{t("价格、供应、流动性与相对尺度，共同构成完整的数据语境。")}</span></header>
+      <header className="valuation-intro"><p>PEARL / DATA</p><h1>{t("PEARL 数据汇总")}</h1><span>{t("价格、供应、流动性与相对尺度，共同构成完整的数据语境。")}</span></header>
 
       <section className="valuation-module">
-        <ModuleHeader eyebrow="01 / CHART" title={t("PRL 数据图表")} source={t(selectedChartOption.source)} />
+        <ModuleHeader eyebrow="01 / CHART" title={t("PEARL 数据图表")} source={t(selectedChartOption.source)} />
         <div className="valuation-price-panel">
           <div className="valuation-toolbar"><span>{t(selectedChartOption.label)}<b data-testid="chart-latest-value">{t(chartLatestValue(selectedChartPoints, selectedChartOption.formatter))}</b></span><div className="price-chart-controls"><label className="chart-metric-select"><span>{t("图表指标")}</span><select aria-label={t("图表指标")} value={t(selectedChartMetric)} onChange={(event) => setSelectedChartMetric(event.target.value as ChartMetricId)}>{chartOptions.map((option) => <option key={option.id} value={t(option.id)}>{t(option.label)}</option>)}</select></label><div className="valuation-range-tabs">{(["30D", "90D", "ALL"] as PriceRange[]).map((item) => <button type="button" className={range === item ? "active" : ""} onClick={() => setRange(item)} key={item}>{t(item)}</button>)}</div></div></div>
           <PriceTrend points={selectedChartPoints} range={range} label={t(selectedChartOption.label)} formatter={selectedChartOption.formatter} />
           <DataFreshness result={metric(selectedChartMetric)} />
           <p>{t("选择不同指标即可切换历史序列。图表为单值时间序列，并非 OHLC K 线。")}</p>
         </div>
-        <div className="valuation-card-grid price-cards"><DataCard label={t("PRL 参考价")} value={t(valueOrState(metric("price"), formatUsd))} detail={t("公开价格序列 · USD / PRL")} kind={sourceKind(metric("price"))} tone="rose" /><DataCard label={t("PRL / BTC")} value={t(valueOrState(metric("prl_btc"), formatSats))} detail={t("一枚 PRL 折算的 BTC 价值")} kind={sourceKind(metric("prl_btc"))} /><DataCard label={t("24h 成交量")} value={t(valueOrState(metric("volume"), formatUsd))} detail={t("公开汇总成交量 · USD")} kind={sourceKind(metric("volume"))} /></div>
+        <div className="valuation-card-grid price-cards"><DataCard label={t("PEARL 参考价")} value={t(valueOrState(metric("price"), formatUsd))} detail={t("公开价格序列 · USD / PEARL")} kind={sourceKind(metric("price"))} tone="rose" /><DataCard label={t("PEARL / BTC")} value={t(valueOrState(metric("prl_btc"), formatSats))} detail={t("一枚 PEARL 折算的 BTC 价值")} kind={sourceKind(metric("prl_btc"))} /><DataCard label={t("24h 成交量")} value={t(valueOrState(metric("volume"), formatUsd))} detail={t("公开汇总成交量 · USD")} kind={sourceKind(metric("volume"))} /></div>
       </section>
 
       <section className="valuation-module">
         <ModuleHeader eyebrow="02 / VALUATION" title={t("估值")} source={t("供应量与 BTC 相对尺度")} />
-        <div className="valuation-card-grid valuation-cards"><DataCard label={t("流通市值")} value={t(marketCapState)} detail={t("PRL 参考价 × 流通供应量")} kind={sourceKind(metric("price"))} tone="blue" /><DataCard label={t("FDV")} value={t(fdvState)} detail={t("PRL 参考价 × 21 亿 PRL 最大供应量")} kind={sourceKind(metric("price"))} /><DataCard label={t("流通市值 / BTC")} value={t(valueOrState(metric("mcap_vs_btc"), (value) => formatPercent(value)))} detail={t("Pearl 流通市值占 Bitcoin 市值")} kind={sourceKind(metric("mcap_vs_btc"))} /><DataCard label={t("FDV / BTC")} value={t(valueOrState(metric("fdv_vs_btc"), (value) => formatPercent(value)))} detail={t("Pearl FDV 占 Bitcoin FDV")} kind={sourceKind(metric("fdv_vs_btc"))} /></div>
-        <aside className="valuation-formula"><b>{t("口径说明")}</b><span>{t("流通市值采用价格序列的最新点 × 流通供应序列的最新点；FDV 使用同一价格 × 2,100,000,000 PRL。两项 BTC 比例直接读取 prlstats 序列。")}</span></aside>
+        <div className="valuation-card-grid valuation-cards"><DataCard label={t("流通市值")} value={t(marketCapState)} detail={t("PEARL 参考价 × 流通供应量")} kind={sourceKind(metric("price"))} tone="blue" /><DataCard label={t("FDV")} value={t(fdvState)} detail={t("PEARL 参考价 × 21 亿 PEARL 最大供应量")} kind={sourceKind(metric("price"))} /><DataCard label={t("流通市值 / BTC")} value={t(valueOrState(metric("mcap_vs_btc"), (value) => formatPercent(value)))} detail={t("Pearl 流通市值占 Bitcoin 市值")} kind={sourceKind(metric("mcap_vs_btc"))} /><DataCard label={t("FDV / BTC")} value={t(valueOrState(metric("fdv_vs_btc"), (value) => formatPercent(value)))} detail={t("Pearl FDV 占 Bitcoin FDV")} kind={sourceKind(metric("fdv_vs_btc"))} /></div>
+        <aside className="valuation-formula"><b>{t("口径说明")}</b><span>{t("流通市值采用价格序列的最新点 × 流通供应序列的最新点；FDV 使用同一价格 × 2,100,000,000 PEARL。两项 BTC 比例直接读取 prlstats 序列。")}</span></aside>
       </section>
 
       <section className="valuation-module">

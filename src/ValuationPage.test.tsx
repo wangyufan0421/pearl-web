@@ -52,7 +52,7 @@ describe("ValuationPage supply section", () => {
     render(<ValuationPage />);
 
     const cards = document.querySelector(".supply-cards");
-    const chart = screen.getByRole("region", { name: "PRL 供应历史" });
+    const chart = screen.getByRole("region", { name: "PEARL 供应历史" });
     expect(cards?.children).toHaveLength(6);
     expect(cards?.nextElementSibling).toBe(chart);
     expect(chart.textContent).toContain("prlstats · 实际观测数据");

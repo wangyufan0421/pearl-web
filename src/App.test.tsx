@@ -11,6 +11,14 @@ afterEach(() => {
 });
 
 describe("Pearl community pages", () => {
+  it.each(["/", "/overview", "/chain", "/valuation", "/pearl-vs-bitcoin", "/archive/core-mechanism"])("does not show the legacy ticker on %s", (path) => {
+    window.history.replaceState({}, "", path);
+    render(<App />);
+    expect(document.body.textContent).not.toMatch(/\bPRL\b/);
+    expect(document.title).not.toMatch(/\bPRL\b/);
+    expect(document.querySelector('meta[name="description"]')?.getAttribute("content")).not.toMatch(/\bPRL\b/);
+  });
+
   it("renders the Pearl introduction archive at the root path", () => {
     window.history.replaceState({}, "", "/");
     render(<App />);
@@ -20,11 +28,31 @@ describe("Pearl community pages", () => {
     expect(screen.getByRole("link", { name: "数据概览" }).getAttribute("href")).toBe("/overview");
   });
 
+  it("places Pearl vs Bitcoin immediately after Data Overview in navigation", () => {
+    window.history.replaceState({}, "", "/overview");
+    render(<App />);
+    const links = [...screen.getByRole("navigation", { name: "主导航" }).querySelectorAll(":scope > a")];
+    expect(links.slice(0, 2).map(link => link.textContent)).toEqual(["数据概览", "Pearl vs Bitcoin"]);
+    expect(links[1].getAttribute("href")).toBe("/pearl-vs-bitcoin");
+  });
+
+  it("renders a dedicated bilingual Pearl vs Bitcoin route", () => {
+    window.history.replaceState({}, "", "/pearl-vs-bitcoin");
+    const view = render(<App />);
+    expect(screen.getByRole("heading", { name: "Pearl vs Bitcoin" })).not.toBeNull();
+    expect(document.title).toContain("Pearl vs Bitcoin");
+    view.unmount();
+    window.history.replaceState({}, "", "/en/pearl-vs-bitcoin");
+    render(<App />);
+    expect(screen.getByRole("heading", { name: "Pearl vs Bitcoin" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Pearl vs Bitcoin" }).getAttribute("href")).toBe("/en/pearl-vs-bitcoin");
+  });
+
   it("keeps existing /#overview bookmarks pointed at the real-time dashboard", () => {
     window.history.replaceState({}, "", "/#overview");
     render(<App />);
 
-    expect(screen.getByText("Lighter · PRL 永续")).not.toBeNull();
+    expect(screen.getByText("Lighter · PEARL 永续")).not.toBeNull();
   });
 
   it("keeps the data overview chrome focused on navigation and data", async () => {
@@ -36,15 +64,28 @@ describe("Pearl community pages", () => {
     expect(screen.queryByRole("heading", { name: "Pearl 数据总览" })).toBeNull();
     expect(screen.queryByText("PEARL NETWORK / CHINESE COMMUNITY")).toBeNull();
     expect(screen.queryByText("文本 · 即将上线")).toBeNull();
-    expect(screen.getByText("Lighter · PRL 永续")).not.toBeNull();
+    expect(screen.getByText("Lighter · PEARL 永续")).not.toBeNull();
     expect(screen.queryByRole("heading", { name: "挖矿经济" })).toBeNull();
     expect(screen.getByRole("heading", { name: "链上实况" })).not.toBeNull();
-    expect(screen.getByRole("heading", { name: "PRL 数据" })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "PEARL 数据" })).not.toBeNull();
     expect(screen.getByRole("link", { name: /查看全部数据汇总/ }).getAttribute("href")).toBe("/valuation");
     expect(screen.getByRole("heading", { name: "AI 交叉" })).not.toBeNull();
     expect(screen.queryByRole("heading", { name: "方法与版本" })).toBeNull();
     expect(screen.queryByRole("link", { name: "挖矿" })).toBeNull();
     expect(screen.queryByRole("link", { name: "方法" })).toBeNull();
+  });
+
+  it("places the market-cap comparison between the overview and on-chain sections", () => {
+    window.history.replaceState({}, "", "/overview");
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "PEARL 市值对比图" })).not.toBeNull();
+    expect([...document.querySelectorAll("main > section")].map(section => section.id)).toEqual(["overview", "market-cap", "chain", "valuation", "ai"]);
+    expect([...document.querySelectorAll("main > section .section-header .eyebrow")].map(label => label.textContent)).toEqual([
+      "02 / MARKET CAP", "03 / CHAIN", "04 / DATA", "05 / AI CROSSOVER",
+    ]);
+    expect(screen.getByText(/每条曲线都从自身首条可用数据开始/)).not.toBeNull();
+    expect(screen.queryByText(/历史约占横轴 80%/)).toBeNull();
   });
 
   it("reserves data cards for the public overview, on-chain, valuation, and AI series", () => {
@@ -62,7 +103,7 @@ describe("Pearl community pages", () => {
     render(<App />);
 
     expect(screen.getByTestId("overview-market-panel")).not.toBeNull();
-    expect(screen.getByText("Lighter · PRL 永续")).not.toBeNull();
+    expect(screen.getByText("Lighter · PEARL 永续")).not.toBeNull();
     expect(screen.queryByRole("heading", { name: "网络脉搏" })).toBeNull();
   });
 
@@ -84,7 +125,7 @@ describe("Pearl community pages", () => {
       { timestamp: new Date("2026-10-08T01:00:00Z"), open: 1.2, high: 1.6, low: 1.1, close: 1.5, volume: 12 },
     ]} />);
 
-    const chart = screen.getByRole("img", { name: "Lighter PRL 永续 K 线图" });
+    const chart = screen.getByRole("img", { name: "Lighter PEARL 永续 K 线图" });
     Object.defineProperty(chart, "getBoundingClientRect", { value: () => ({ left: 0, width: 660 }) });
     fireEvent.mouseMove(chart, { clientX: 500 });
 
@@ -101,7 +142,7 @@ describe("Pearl community pages", () => {
     });
     render(<CandlestickChart zoom={1} candles={candles} />);
 
-    const chart = screen.getByRole("img", { name: "Lighter PRL 永续 K 线图" });
+    const chart = screen.getByRole("img", { name: "Lighter PEARL 永续 K 线图" });
     Object.defineProperty(chart, "getBoundingClientRect", { value: () => ({ left: 0, width: 660 }) });
     fireEvent.mouseMove(chart, { clientX: 303 });
 
@@ -120,7 +161,7 @@ describe("Pearl community pages", () => {
     window.history.replaceState({}, "", "/valuation");
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "PRL 数据图表" })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "PEARL 数据图表" })).not.toBeNull();
     expect(screen.queryByRole("link", { name: "AI" })).toBeNull();
     expect(screen.getByRole("heading", { name: "估值" })).not.toBeNull();
     expect(screen.getByRole("heading", { name: "供给" })).not.toBeNull();
@@ -205,13 +246,13 @@ describe("Pearl community pages", () => {
     expect((await screen.findByTestId("price-trend-tooltip")).textContent).toContain("0.164%");
   });
 
-  it("presents the PRL chart summary without a standalone PRL price option", () => {
+  it("presents the PEARL chart summary without a standalone price option", () => {
     window.history.replaceState({}, "", "/valuation");
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "PRL 数据图表" })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "PEARL 数据图表" })).not.toBeNull();
     expect(screen.getByRole("link", { name: "数据汇总" })).not.toBeNull();
-    expect(screen.getByRole("option", { name: "PRL挖矿成本" })).not.toBeNull();
+    expect(screen.getByRole("option", { name: "PEARL挖矿成本" })).not.toBeNull();
     expect(screen.queryByRole("option", { name: "PRL price" })).toBeNull();
   });
 });

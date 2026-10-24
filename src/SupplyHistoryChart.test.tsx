@@ -16,7 +16,7 @@ const result = (points: MetricPoint[]): DataResult<MetricSeries> => ({
 });
 
 describe("prepareSupplyHistory", () => {
-  it("keeps the latest observed point per UTC day and calculates unissued supply", () => {
+  it("keeps the latest observed point per UTC day", () => {
     const rows = prepareSupplyHistory([
       point("2026-10-08T02:00:00Z", 310_000_000),
       point("2026-10-08T20:00:00Z", 320_000_000),
@@ -25,7 +25,6 @@ describe("prepareSupplyHistory", () => {
     ], "ALL", new Date("2026-10-19T00:00:00Z").getTime());
 
     expect(rows.map(row => row.issued)).toEqual([320_000_000, 330_000_000]);
-    expect(rows.map(row => row.remaining)).toEqual([1_780_000_000, 1_770_000_000]);
   });
 
   it("anchors 30D and 90D to the final observed point and rejects future points", () => {
@@ -49,21 +48,30 @@ describe("SupplyHistoryChart", () => {
     expect(screen.queryByText("暂无可用供应历史")).not.toBeNull();
   });
 
-  it("shows both PRL quantities and the date on pointer hover, then hides them", () => {
+  it("defaults to all observed history with an issued-only framed line and a readable tooltip", () => {
     render(<SupplyHistoryChart result={result([
+      point("2026-04-08T00:00:00Z", 10_000_000),
       point("2026-10-08T00:00:00Z", 320_000_000),
       point("2026-10-09T00:00:00Z", 330_000_000),
     ])} />);
 
     const chart = screen.getByTestId("supply-history-interaction");
-    expect(chart.textContent).toContain("PRL");
+    expect(screen.getByRole("button", { name: "ALL" }).getAttribute("aria-pressed")).toBe("true");
+    expect(chart.textContent).toContain("2026/4/8");
+    expect(chart.textContent).toContain("4亿");
+    expect(chart.textContent).not.toContain("21亿");
+    expect(chart.querySelector(".supply-history-frame")).not.toBeNull();
+    expect(chart.querySelector(".supply-history-issued")).toBeNull();
+    expect(chart.querySelector(".supply-history-unissued")).toBeNull();
+    expect(screen.queryByText("尚未发行 PRL")).toBeNull();
+    expect(chart.textContent).toContain("PEARL");
     Object.defineProperty(chart, "getBoundingClientRect", { value: () => ({ left: 0, width: 840 }) });
-    fireEvent.pointerMove(chart, { clientX: 780 });
+    fireEvent.pointerMove(chart, { clientX: 825 });
 
     const tooltip = screen.getByTestId("supply-history-tooltip");
     expect(tooltip.textContent).toContain("2026");
-    expect(tooltip.textContent).toContain("330,000,000 PRL");
-    expect(tooltip.textContent).toContain("1,770,000,000 PRL");
+    expect(tooltip.textContent).toContain("3.3亿 PEARL");
+    expect(tooltip.textContent).not.toContain("尚未发行");
 
     fireEvent.pointerLeave(chart);
     expect(screen.queryByTestId("supply-history-tooltip")).toBeNull();

@@ -15,7 +15,7 @@ export function createMarketHandler(store: ReadStore, now: () => number = Date.n
   return async (url: URL): Promise<MarketResponse> => {
     const headers = { "cache-control": "no-store" };
     const dataset = requestedDataset(url);
-    if (!dataset) return { status: url.pathname === "/api/market/candles" || url.pathname.endsWith("/series") ? 400 : 404, headers, body: { error: "invalid_dataset" } };
+    if (!dataset) return { status: url.pathname === "/api/market/candles" || url.pathname === "/api/market/market-cap" || url.pathname.endsWith("/series") ? 400 : 404, headers, body: { error: "invalid_dataset" } };
     try {
       const snapshot = await read(dataset.key);
       if (!snapshot) return { status: 503, headers, body: { error: "data_unavailable" } };

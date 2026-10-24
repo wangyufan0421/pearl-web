@@ -19,6 +19,8 @@ function handlers(overrides: Partial<DiscussionService> = {}, compare?: (left: U
     createDiscussion: vi.fn().mockResolvedValue({ discussion: { slug: "wtf-is-pearl" }, primary: {} }),
     addSources: vi.fn().mockResolvedValue([{ statusId: "2", outcome: "created" }]),
     refreshSource: vi.fn().mockResolvedValue({}),
+    repairSourceParent: vi.fn().mockResolvedValue({ xStatusId: "2", parentStatusId: "1", fetchStatus: "success" }),
+    setSourceParent: vi.fn().mockResolvedValue({ xStatusId: "2", parentStatusId: "1", fetchStatus: "success" }),
     listPublishedDiscussions: vi.fn().mockResolvedValue([]),
     getPublishedDiscussion: vi.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -132,6 +134,16 @@ describe("community discussion HTTP handlers", () => {
     expect(result.status).toBe(200);
     expect(JSON.stringify(result.body)).not.toContain("TWITTER241_API_KEY");
     expect(result.body).toMatchObject({ source: { lastFetchError: "暂时无法更新，可重试" } });
+  });
+
+  it("requires admin auth and validates parent writes while returning safe sources", async () => {
+    const api = handlers();
+    const params = { slug: "published", statusId: "2" };
+    expect((await api.handleRepairSourceParent(request({}, undefined, params))).status).toBe(401);
+    expect((await api.handleSetSourceParent(request({ parentStatusId: "bad" }, { authorization: "Bearer test-token" }, params))).status).toBe(400);
+    expect(await api.handleRepairSourceParent(request({}, { authorization: "Bearer test-token" }, params))).toMatchObject({ status: 200, body: { source: { parentStatusId: "1" } } });
+    expect(await api.handleSetSourceParent(request({ parentStatusId: "1" }, { authorization: "Bearer test-token" }, params))).toMatchObject({ status: 200, body: { source: { parentStatusId: "1" } } });
+    expect(api.service.setSourceParent).toHaveBeenCalledWith("published", "2", "1");
   });
 });
 

@@ -14,6 +14,8 @@ export type FetchStatus = "success" | "failed";
 export type FetchedSource = {
   xStatusId: string;
   url: string;
+  authorUserId?: string | null;
+  parentStatusId?: string | null;
   author: string | null;
   handle: string | null;
   avatarUrl: string | null;

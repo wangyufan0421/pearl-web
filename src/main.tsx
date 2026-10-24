@@ -5,6 +5,7 @@ import "./styles/tokens.css";
 import "./styles/app.css";
 import "./styles/chain.css";
 import "./styles/valuation.css";
+import "./styles/pearl-vs-bitcoin.css";
 import "./styles/valuation-adjustments.css";
 import "./styles/archive.css";
 import "./styles/core-mechanism.css";

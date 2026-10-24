@@ -18,6 +18,12 @@ function readString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function replyStatusId(value: unknown): string | null {
+  if (typeof value === "number") return Number.isSafeInteger(value) && value > 0 ? String(value) : null;
+  const text = readString(value);
+  return text && /^[0-9]+$/.test(text) ? text : null;
+}
+
 function readPath(value: unknown, path: string[]): unknown {
   let current: unknown = value;
   for (const key of path) {
@@ -168,6 +174,14 @@ export function extractCommunityDiscussion(
   return {
     xStatusId: normalized.xStatusId,
     url: normalized.url,
+    authorUserId: identity.userId,
+    parentStatusId: (() => {
+      const id = replyStatusId(readPath(tweet, ["legacy", "in_reply_to_status_id_str"]))
+        ?? replyStatusId(tweet.in_reply_to_status_id_str)
+        ?? replyStatusId(readPath(tweet, ["legacy", "in_reply_to_status_id"]))
+        ?? replyStatusId(tweet.in_reply_to_status_id);
+      return id && id !== normalized.xStatusId ? id : null;
+    })(),
     author: identity.author ?? fallback.author ?? null,
     handle: identity.handle ?? fallback.handle ?? null,
     avatarUrl: identity.avatarUrl ?? fallback.avatarUrl ?? null,

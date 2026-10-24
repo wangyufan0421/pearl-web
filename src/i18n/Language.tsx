@@ -18,10 +18,12 @@ export function formatLocale() { return languageFromPath(window.location.pathnam
 const fragments = Object.keys(english).sort((a, b) => b.length - a.length);
 const fragmentPattern = new RegExp(fragments.map(key => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g");
 export function translate<T>(value: T, language: Language): T {
-  if (language !== "en" || typeof value !== "string") return value;
-  const exact = Object.hasOwn(english, value) ? english[value] : undefined;
+  if (typeof value !== "string") return value;
+  const displayValue = value.replace(/\bPRL\b/g, "PEARL");
+  if (language !== "en") return displayValue as T;
+  const exact = Object.hasOwn(english, displayValue) ? english[displayValue] : undefined;
   if (exact !== undefined) return exact as T;
-  return value.replace(fragmentPattern, key => english[key]) as T;
+  return displayValue.replace(fragmentPattern, key => english[key]) as T;
 }
 
 type LanguageContextValue = { language: Language; t: <T>(value: T) => T; href: (url: string) => string; switchLanguage: (language: Language) => void };
@@ -34,7 +36,7 @@ function initialLanguage(): Language {
 }
 
 const pageTitles: Record<string, string> = {
-  "/": "Pearl 是什么", "/archive": "Pearl 是什么", "/overview": "数据概览", "/chain": "链上数据", "/valuation": "PRL 数据汇总",
+  "/": "Pearl 是什么", "/archive": "Pearl 是什么", "/overview": "数据概览", "/pearl-vs-bitcoin": "Pearl vs Bitcoin", "/chain": "链上数据", "/valuation": "PEARL 数据汇总",
   "/archive/core-mechanism": "核心机制", "/archive/whitepaper": "Pearl 白皮书", "/archive/articles": "Pearl相关文章", "/archive/people": "Pearl人物与关系",
   "/archive/community-discussion": "Pearl社区讨论",
   "/admin/community-discussions": "社区讨论管理",
@@ -42,9 +44,10 @@ const pageTitles: Record<string, string> = {
 const pageDescriptions: Record<string, string> = {
   "/": "了解 Pearl 的双工计算、有用工作量证明和技术边界。",
   "/archive": "了解 Pearl 的双工计算、有用工作量证明和技术边界。",
-  "/overview": "查看 PRL 永续价格、Pearl 网络状态、供应与 AI 成本指标。",
+  "/overview": "查看 PEARL 永续价格、Pearl 网络状态、供应与 AI 成本指标。",
+  "/pearl-vs-bitcoin": "比较 Pearl 与 Bitcoin 的模型功耗、设备规模、硬件资本和每日发行价值。",
   "/chain": "查看 Pearl 矿池、交易活跃度、币龄和持币地址数据。",
-  "/valuation": "查看 PRL 参考价格、市值、BTC 相对尺度和发行数据。",
+  "/valuation": "查看 PEARL 参考价格、市值、BTC 相对尺度和发行数据。",
   "/archive/core-mechanism": "了解 Pearl 如何将矩阵计算用于 AI 推理和挖矿尝试。",
   "/archive/whitepaper": "阅读 Pearl INT 白皮书原文及对应中文译本。",
   "/archive/articles": "浏览 Pearl 协议、学术研究、经济分析和社区长文。",

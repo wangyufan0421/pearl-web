@@ -22,7 +22,7 @@ export default function ArchiveHomePage() {
       <div className="archive-hero-copy">
         <p className="eyebrow">01 / START HERE</p>
         <h1 id="archive-title">{t("Pearl 是什么")}</h1>
-        <p className="archive-definition">{t("Pearl 是一条 ")}<strong>{t("PoUW 区块链")}</strong>{t("，旨在让 AI 计算负载参与挖取原生代币 PRL。")}</p>
+        <p className="archive-definition">{t("Pearl 是一条 ")}<strong>{t("PoUW 区块链")}</strong>{t("，旨在让 AI 计算负载参与挖取原生代币 PEARL。")}</p>
         <p className="archive-intro">{t("它想让同一套算力服务两种目的：交付实际的 AI 推理工作，同时在符合条件时参与区块链出块。")}</p>
         <div className="archive-actions"><a href={localizeHref("#introduction")}>{t("开始阅读 ")}<span>↓</span></a><a href={localizeHref("/overview")}>{t("查看数据总览 ")}<span>→</span></a></div>
       </div>
@@ -38,7 +38,7 @@ export default function ArchiveHomePage() {
         <p className="eyebrow">THE BRIEF</p>
         <h2>{t("核心定位与工作原理")}</h2>
         <div className="archive-prose">
-          <p>{t("在人工智能与区块链技术交汇的探索中，Pearl（PRL）提出了一个引人关注的设定：让 AI 算力不仅服务于实际的推理请求，还能同时参与区块链挖矿。")}</p>
+          <p>{t("在人工智能与区块链技术交汇的探索中，Pearl（PEARL）提出了一个引人关注的设定：让 AI 算力不仅服务于实际的推理请求，还能同时参与区块链挖矿。")}</p>
           <p><EvidenceTag tone="mechanism">{t("公开机制")}</EvidenceTag>{t(" Pearl 的目标不是让每一次 AI 请求自动产生奖励。它是一条工作量证明链：当矿工执行符合规则的计算并满足网络难度要求时，才可能获得出块机会；最终仍须由全网广播并接受。")}</p>
         </div>
       </section>
@@ -85,11 +85,11 @@ export default function ArchiveHomePage() {
         <p className="eyebrow">04 / MILESTONES</p>
         <h2>{t("两个方向，两套里程碑")}</h2>
         <div className="archive-milestone-grid">
-          <article><span>{t("阶段一")}</span><b>{t("算力 → PRL")}</b><p>{t("矿工贡献 AI 算力，并在 PoUW 机制下尝试获得 PRL 奖励。这是基础的 L1 链上机制。")}</p></article>
-          <article><span>{t("阶段二")}</span><b>{t("PRL → 算力")}</b><p>{t("用户以 PRL 支付并购买去中心化网络中的 AI 推理算力，形成反向消费与结算闭环。")}</p></article>
+          <article><span>{t("阶段一")}</span><b>{t("算力 → PEARL")}</b><p>{t("矿工贡献 AI 算力，并在 PoUW 机制下尝试获得 PEARL 奖励。这是基础的 L1 链上机制。")}</p></article>
+          <article><span>{t("阶段二")}</span><b>{t("PEARL → 算力")}</b><p>{t("用户以 PEARL 支付并购买去中心化网络中的 AI 推理算力，形成反向消费与结算闭环。")}</p></article>
         </div>
         <div className="archive-prose">
-          <p><EvidenceTag tone="open">{t("待验证")}</EvidenceTag>{t(" 算力挖矿可以先行出现，但 PRL 计价的算力消费与结算市场需要独立的链上结算证据，不能因前者存在就视为后者已经成熟。")}</p>
+          <p><EvidenceTag tone="open">{t("待验证")}</EvidenceTag>{t(" 算力挖矿可以先行出现，但 PEARL 计价的算力消费与结算市场需要独立的链上结算证据，不能因前者存在就视为后者已经成熟。")}</p>
           <p><EvidenceTag tone="open">{t("待验证")}</EvidenceTag>{t(" 单次矩阵计算的挖矿凭证不等于完整大模型跑完整场推理的全局证明。团队曾将 Proof-of-Inference 归为独立于 L1 挖矿的 L2 / Rollup 方向，相关高吞吐支付与结算能力仍需持续观察。")}</p>
         </div>
       </section>

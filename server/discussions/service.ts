@@ -23,6 +23,8 @@ export type DiscussionService = {
   createDiscussion(input: CreateDiscussionInput): Promise<{ discussion: Awaited<ReturnType<DiscussionStore["createDiscussionWithPrimary"]>>["discussion"]; primary: StoredSource }>;
   addSources(slug: string, urls: string[]): Promise<SourceWriteOutcome[]>;
   refreshSource(slug: string, statusId: string): Promise<StoredSource>;
+  repairSourceParent(slug: string, statusId: string): Promise<StoredSource>;
+  setSourceParent(slug: string, statusId: string, parentStatusId: string): Promise<StoredSource>;
   listPublishedDiscussions: DiscussionStore["listPublishedDiscussions"];
   getPublishedDiscussion: DiscussionStore["getPublishedDiscussion"];
 };
@@ -61,6 +63,8 @@ function toSuccessfulSource(source: FetchedSource, url: string, attemptedAt: str
   const snapshot = {
     xStatusId: source.xStatusId,
     url,
+    authorUserId: source.authorUserId ?? null,
+    parentStatusId: source.parentStatusId ?? null,
     author: source.author,
     handle: source.handle,
     avatarUrl: source.avatarUrl,
@@ -90,7 +94,7 @@ export function createDiscussionService({ store, fetchSource, now = () => new Da
     const title = derivedTitle(fetched, input.title);
     const slug = await availableSlug(input.slug ?? title);
     const attemptedAt = now();
-    const primary = toSuccessfulSource({ ...fetched, xStatusId: normalized.statusId, url: normalized.url }, normalized.url, attemptedAt);
+    const primary = toSuccessfulSource({ ...fetched, xStatusId: normalized.statusId, url: normalized.url, parentStatusId: null }, normalized.url, attemptedAt);
     const payload: CreateDiscussionWithPrimaryInput = {
       slug,
       title,
@@ -123,6 +127,8 @@ export function createDiscussionService({ store, fetchSource, now = () => new Da
           xStatusId: normalized.statusId,
           url: normalized.url,
           role: "response",
+          authorUserId: null,
+          parentStatusId: null,
           author: null,
           handle: null,
           avatarUrl: null,
@@ -178,6 +184,10 @@ export function createDiscussionService({ store, fetchSource, now = () => new Da
           author: latest.author ?? fetched.author,
           handle: latest.handle ?? fetched.handle,
           avatarUrl: latest.avatarUrl ?? fetched.avatarUrl,
+          authorUserId: latest.authorUserId ?? fetched.authorUserId ?? null,
+          // Relationship repair is a separate parent-only operation; content refresh
+          // must not race with an administrator's manual parent assignment.
+          parentStatusId: latest.parentStatusId ?? null,
         }, normalized.url, revision, latest) as StoredSource;
       } else {
         replacement = { ...latest, fetchStatus: "failed", lastAttemptedAt: revision, lastFetchError: fetchError };
@@ -187,6 +197,32 @@ export function createDiscussionService({ store, fetchSource, now = () => new Da
     }
     throw new Error("Source changed during refresh; please retry");
   }
+
+  async function repairSourceParent(slug: string, statusId: string) {
+    const source = await store.getSourceForDiscussion(slug, statusId);
+    if (!source) throw new Error(`Source not found in discussion: ${statusId}`);
+    if (source.role === "primary" || source.parentStatusId) return source;
+    const fetched = await fetchSource(source.url);
+    const parentId = fetched.parentStatusId;
+    if (!parentId || !/^[0-9]+$/.test(parentId) || parentId === source.xStatusId) return source;
+    return store.updateSourceParent(slug, statusId, parentId, true);
+  }
+
+  async function setSourceParent(slug: string, statusId: string, parentStatusId: string) {
+    const source = await store.getSourceForDiscussion(slug, statusId);
+    if (!source || source.role !== "response") throw new Error(`Source not found in discussion: ${statusId}`);
+    if (statusId === parentStatusId) throw new Error("A source cannot reply to itself");
+    const parent = await store.getSourceForDiscussion(slug, parentStatusId);
+    if (!parent) throw new Error(`Parent not found in discussion: ${parentStatusId}`);
+    const seen = new Set<string>([statusId]);
+    let cursor: StoredSource | undefined = parent;
+    while (cursor) {
+      if (seen.has(cursor.xStatusId)) throw new Error("Reply relationship would create a cycle");
+      seen.add(cursor.xStatusId);
+      cursor = cursor.parentStatusId ? await store.getSourceForDiscussion(slug, cursor.parentStatusId) : undefined;
+    }
+    return store.updateSourceParent(slug, statusId, parentStatusId, false);
+  }
   return {
     listAdminDiscussions: () => store.listAdminDiscussions(),
     getAdminDiscussion: slug => store.getAdminDiscussion(slug),
@@ -194,6 +230,8 @@ export function createDiscussionService({ store, fetchSource, now = () => new Da
     createDiscussion,
     addSources,
     refreshSource,
+    repairSourceParent,
+    setSourceParent,
     listPublishedDiscussions: () => store.listPublishedDiscussions(),
     getPublishedDiscussion: (slug) => store.getPublishedDiscussion(slug),
   };

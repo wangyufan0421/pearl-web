@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
   <title id="title">Pearl 核心机制：一次计算，两种结果</title>
-  <desc id="desc">AI 请求进入 GPU 矩阵运算，一路产生 AI 推理结果，另一路产生参与区块竞争的 PoUW 证明；只有网络接受后才可能获得 PRL。</desc>
+  <desc id="desc">AI 请求进入 GPU 矩阵运算，一路产生 AI 推理结果，另一路产生参与区块竞争的 PoUW 证明；只有网络接受后才可能获得 PEARL。</desc>
   <defs>
     <linearGradient id="paper" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#fcfaf4"/><stop offset="1" stop-color="#f2f4f1"/></linearGradient>
     <linearGradient id="gpu" x1="0" x2="1"><stop stop-color="#5e8497"/><stop offset="1" stop-color="#85a8b6"/></linearGradient>
@@ -54,7 +54,7 @@
       <text x="900" y="831" fill="#697174" font-size="22">参与区块竞争</text>
       <path d="M1168 736h174" stroke="#a83f62" stroke-width="4" marker-end="url(#roseArrow)"/>
       <text x="1192" y="788" fill="#a83f62" font-size="23" font-weight="700">网络接受后</text>
-      <text x="1192" y="827" fill="#202728" font-size="27" font-weight="700">才可能获得 PRL</text>
+      <text x="1192" y="827" fill="#202728" font-size="27" font-weight="700">才可能获得 PEARL</text>
     </g>
 
     <rect x="112" y="925" width="1376" height="1" fill="#cfd5d2"/>

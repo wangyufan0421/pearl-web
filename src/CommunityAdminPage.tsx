@@ -4,9 +4,9 @@ import { useLanguage } from "./i18n/Language";
 import { SourceMessage } from "./CommunityArticlePage";
 import { CommunityAvatar, CommunityAuthorInfo } from "./CommunityIdentity";
 import { useCommunityResource } from "./useCommunityResource";
-import { AdminRequestError, verifyAdminToken, createArticle, addArticleResponses, refreshArticleSource, normalizeArticleLink, responseLinks, getAdminCards, getAdminDetail, manageDiscussion, type AdminDiscussionCard, type DiscussionAction, type WriteOutcome } from "./data/communityAdmin";
+import { AdminRequestError, verifyAdminToken, createArticle, addArticleResponses, refreshArticleSource, repairArticleParent, setArticleParent, normalizeArticleLink, responseLinks, getAdminCards, getAdminDetail, manageDiscussion, type AdminDiscussionCard, type DiscussionAction, type WriteOutcome } from "./data/communityAdmin";
 import { AdminDiscussionDialog } from "./admin/AdminDiscussionDialog";
-import { CommunityReadError } from "./data/communityDiscussion";
+import { CommunityReadError, type CommunitySource } from "./data/communityDiscussion";
 
 const base = "/admin/community-discussions";
 const errorCopy: Record<AdminRequestError["kind"], string> = {
@@ -15,6 +15,29 @@ const errorCopy: Record<AdminRequestError["kind"], string> = {
   missing: "未找到对应讨论或来源，请刷新列表。", unavailable: "服务暂时不可用，请检查部署配置后重试。",
   uncertain: "请求未能确认完成，请先检查讨论页，再决定是否重试。",
 };
+function ParentEditor({ source, sources, locked, language, onRepair, onSave }: {
+  source: CommunitySource; sources: CommunitySource[]; locked: boolean; language: "zh" | "en";
+  onRepair: () => void; onSave: (parentStatusId: string) => void;
+}) {
+  const [draft, setDraft] = useState(source.parentStatusId ?? "");
+  const parent = sources.find(candidate => candidate.xStatusId === source.parentStatusId);
+  const current = source.parentStatusId
+    ? parent ? `${parent.author ?? parent.handle ?? parent.xStatusId} · ${parent.xStatusId}` : source.parentStatusId
+    : language === "zh" ? "尚未关联" : "Not linked";
+  return <div className="admin-parent-editor">
+    <p className="admin-help">{language === "zh" ? "当前父帖：" : "Current parent: "}{current}</p>
+    <label>{language === "zh" ? "指定父帖" : "Assign parent post"}
+      <select aria-label={`${language === "zh" ? "推文" : "Parent post for"} ${source.xStatusId}${language === "zh" ? " 的父帖" : ""}`} value={draft} onChange={event => setDraft(event.target.value)} disabled={locked}>
+        <option value="">{language === "zh" ? "选择已保存的推文" : "Choose an archived post"}</option>
+        {sources.filter(candidate => candidate.xStatusId !== source.xStatusId).map(candidate => <option key={candidate.xStatusId} value={candidate.xStatusId}>{candidate.role === "primary" ? language === "zh" ? "主帖" : "Main post" : candidate.author ?? candidate.handle ?? (language === "zh" ? "回应" : "Reply")} · {candidate.xStatusId}</option>)}
+      </select>
+    </label>
+    <div className="admin-parent-actions">
+      <button type="button" disabled={locked || Boolean(source.parentStatusId)} aria-label={`${language === "zh" ? "扫描 X 回复关系" : "Scan X reply link for"} ${source.xStatusId}`} onClick={onRepair}>{language === "zh" ? "扫描缺失的 X 回复关系" : "Scan missing X reply link"}</button>
+      <button type="button" disabled={locked || !draft || draft === source.parentStatusId} aria-label={`${language === "zh" ? "保存父帖" : "Save parent for"} ${source.xStatusId}`} onClick={() => onSave(draft)}>{language === "zh" ? "保存父帖" : "Save parent"}</button>
+    </div>
+  </div>;
+}
 export default function CommunityAdminPage({ route = base }: { route?: string }) {
   const { t, href, language } = useLanguage();
   const [token, setToken] = useState(""); const [enteredToken, setEnteredToken] = useState("");
@@ -117,6 +140,18 @@ export default function CommunityAdminPage({ route = base }: { route?: string })
       resource.retry(); cards.retry();
     });
   }
+  function repairParent(statusId: string) {
+    void run(`parent-repair:${statusId}`, credential => repairArticleParent(credential, slug, statusId), result => {
+      resource.retry();
+      setNotice({ text: result.parentStatusId ? "已读取回复关系；仅更新了父帖关联。" : "X 未提供回复关系；原有内容保持不变。", error: false });
+    });
+  }
+  function saveParent(statusId: string, parentStatusId: string) {
+    void run(`parent-save:${statusId}`, credential => setArticleParent(credential, slug, statusId, parentStatusId), () => {
+      resource.retry();
+      setNotice({ text: "父帖关联已保存；正文、译文和作者身份未改动。", error: false });
+    });
+  }
   function confirmAction(confirmation?: string) {
     if (!dialog) return;
     const { card, action } = dialog;
@@ -162,9 +197,9 @@ export default function CommunityAdminPage({ route = base }: { route?: string })
         {resource.error && <div role="alert"><p>{t("无法读取来源，请刷新后重试。")}</p><button onClick={resource.retry}>{t("重试")}</button></div>}
         {selected && <><h2 className="admin-detail-title">{selected.title}</h2><p className="admin-help">{t(selected.status === "draft" ? "此讨论已隐藏，公众无法查看。" : "此讨论已公开。")}</p>
           <p className="admin-result-link">{selected.status === "published" && <a href={href(`/archive/community-discussion/${slug}`)} target="_blank" rel="noreferrer">{t("打开已发布讨论")} <span aria-hidden="true">↗</span></a>}</p>
-          <div className="admin-editor-grid"><section className="admin-topic-preview" aria-label={t("主题帖预览")}>{selected.sources.filter(source => source.role === "primary").map(source => <div key={source.xStatusId}><SourceMessage source={source} index={0} /><button disabled={locked} onClick={() => refreshSource(source.xStatusId)}>{t("刷新原文")}</button></div>)}</section>
+          <div className="admin-editor-grid"><section className="admin-topic-preview" aria-label={t("主题帖预览")}>{selected.sources.filter(source => source.role === "primary").map(source => <div key={source.xStatusId}><SourceMessage source={source} side="left" /><button disabled={locked} onClick={() => refreshSource(source.xStatusId)}>{t("刷新原文")}</button></div>)}</section>
           <section className="admin-panel"><p className="eyebrow">RESPONSES / QUOTES</p><h2>{t("添加辩论与回应")}</h2><form onSubmit={submitResponses}><fieldset disabled={locked}>{responseField}</fieldset><button type="submit" disabled={locked}>{t(busy === "responses" ? "正在抓取回应…" : "添加回应")}</button></form>
-            <h3>{t("已保存的来源")}</h3>{selected.sources.filter(source => source.role === "response").map(source => <div className="admin-saved-response" key={source.xStatusId}><CommunityAuthorInfo source={source} /><p>{language === "zh" ? source.blocks[0]?.translationZh ?? source.blocks[0]?.text : source.blocks[0]?.text}</p><p className="admin-help">{source.xStatusId} · {t(source.fetchStatus === "success" ? "已保存" : "抓取失败")}</p><button disabled={locked} aria-label={`${t("刷新来源")} ${source.xStatusId}`} onClick={() => refreshSource(source.xStatusId)}>{t("刷新原文")}</button></div>)}
+            <h3>{t("已保存的来源")}</h3>{selected.sources.filter(source => source.role === "response").map(source => <div className="admin-saved-response" key={source.xStatusId}><CommunityAuthorInfo source={source} /><p>{language === "zh" ? source.blocks[0]?.translationZh ?? source.blocks[0]?.text : source.blocks[0]?.text}</p><p className="admin-help">{source.xStatusId} · {t(source.fetchStatus === "success" ? "已保存" : "抓取失败")}</p><button disabled={locked} aria-label={`${t("刷新来源")} ${source.xStatusId}`} onClick={() => refreshSource(source.xStatusId)}>{t("刷新原文")}</button><ParentEditor key={`${source.xStatusId}:${source.parentStatusId ?? ""}`} source={source} sources={selected.sources} locked={locked} language={language} onRepair={() => repairParent(source.xStatusId)} onSave={parentId => saveParent(source.xStatusId, parentId)} /></div>)}
           </section></div>
         </>}
       </>}

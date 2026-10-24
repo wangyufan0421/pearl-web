@@ -18,7 +18,7 @@ const conclusions = [
   ["机制本体", "合格矩阵运算同时服务推理结果与挖矿尝试（duplex）。"],
   ["用户体感", "你通常是为了答案而使用服务；出块是概率事件，不是标配赠品。"],
   ["工程演进", "从整数构造走向更贴近真实浮点推理栈的方案；发表不等于主网激活。"],
-  ["经济外延", "收益补贴与 PRL 购买算力都是可分开验证的下一层，不应提前写入机制结论。"],
+  ["经济外延", "收益补贴与 PEARL 购买算力都是可分开验证的下一层，不应提前写入机制结论。"],
 ] as const;
 
 function EvidenceTag({ tone, children }: { tone: "mechanism" | "statement" | "open"; children: string }) {
@@ -59,7 +59,7 @@ export default function CoreMechanismPage() {
         <div className="mechanism-section-body">
           <div className="mechanism-compare">
             <article><span>{t("INFERENCE / 推理")}</span><h3>{t("为了答案而计算")}</h3><p>{t("用户或应用把输入交给模型；模型给出输出。中间大量工作是矩阵乘法，GPU 天生擅长这类运算。")}</p></article>
-            <article><span>{t("MINING / 挖矿")}</span><h3>{t("为了出块而竞争")}</h3><p>{t("PoUW 链上，参与者以计算竞争区块证明；谁先提交符合规则且被网络接受的结果，谁才可能获得 PRL 奖励。")}</p></article>
+            <article><span>{t("MINING / 挖矿")}</span><h3>{t("为了出块而竞争")}</h3><p>{t("PoUW 链上，参与者以计算竞争区块证明；谁先提交符合规则且被网络接受的结果，谁才可能获得 PEARL 奖励。")}</p></article>
           </div>
           <p className="mechanism-copy">{t("传统世界里，这两套活各算各的账。Pearl 的核心主张是让")}<strong>{t("符合条件的矩阵运算")}</strong>{t("同时服务应用，并参与挖矿竞争——不是另开一台矿机，而是尽量让有用算力也具备争块资格。")}</p>
         </div>
@@ -97,8 +97,8 @@ export default function CoreMechanismPage() {
         <div className="mechanism-section-body">
           <div className="mechanism-modes"><article><span>01</span><h3>{t("纯挖矿")}</h3><p>{t("主要为了维护账本与争取区块奖励。")}</p></article><article><span>02</span><h3>{t("纯推理")}</h3><p>{t("主要为了交付模型答案与服务收入。")}</p></article><article><span>03</span><h3>duplex</h3><p>{t("两边同时参与，但通常伴随额外开销。")}</p></article></div>
           <div className="mechanism-economy-flow"><span>{t("硬件、电费与 serving 成本")}</span><i>→</i><span>{t("运营商或以挖矿收益补贴")}</span><i>→</i><strong>{t("是否降价给客户，取决于竞争与定价")}</strong></div>
-          <p className="mechanism-copy">{t("这个模型不保证有用算力永远更优，也不保证挖矿收益会自动变成更低的 API 价格。有用需求弱、币价下跌或额外开销变大时，优势都可能被吃掉；即使推理生意好，运营商也未必将收入用于买入 PRL。")}</p>
-          <p className="mechanism-copy"><EvidenceTag tone="open">{t("待验证")}</EvidenceTag>{t(" 用 PRL 买推理属于产品与支付层里程碑；它与 L1 上能否 duplex 挖矿不是同一天完成的事。Proof-of-Inference 一类能力也更接近 L2 / Rollup 的独立方向。")}</p>
+          <p className="mechanism-copy">{t("这个模型不保证有用算力永远更优，也不保证挖矿收益会自动变成更低的 API 价格。有用需求弱、币价下跌或额外开销变大时，优势都可能被吃掉；即使推理生意好，运营商也未必将收入用于买入 PEARL。")}</p>
+          <p className="mechanism-copy"><EvidenceTag tone="open">{t("待验证")}</EvidenceTag>{t(" 用 PEARL 买推理属于产品与支付层里程碑；它与 L1 上能否 duplex 挖矿不是同一天完成的事。Proof-of-Inference 一类能力也更接近 L2 / Rollup 的独立方向。")}</p>
         </div>
       </section>
 

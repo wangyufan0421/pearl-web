@@ -7,6 +7,8 @@ const identitySchema = z.object({
 });
 export const sourceSchema = identitySchema.extend({
   role: z.enum(["primary", "response"]),
+  authorUserId: z.string().regex(/^[0-9]+$/).nullable().optional(),
+  parentStatusId: z.string().regex(/^[0-9]+$/).nullable().optional(),
   fetchedAt: z.string().nullable(), lastAttemptedAt: z.string(),
   blocks: z.array(z.object({ id: z.string(), kind: z.enum(["heading", "quote", "paragraph"]), text: z.string(), translationZh: z.string().optional() })),
   sourceType: z.enum(["tweet", "noteTweet", "article"]).nullable(),

@@ -70,3 +70,10 @@ export async function addArticleResponses(token: string, slug: string, urls: str
 export async function refreshArticleSource(token: string, slug: string, statusId: string) {
   return (await request(`/api/admin/community-discussions/${encodeURIComponent(slug)}/sources/${encodeURIComponent(statusId)}/refresh`, token, refreshedSchema, {})).source;
 }
+const parentResultSchema = z.object({ source: z.object({ xStatusId: z.string().regex(/^[0-9]+$/), parentStatusId: z.string().regex(/^[0-9]+$/).nullable().optional() }) });
+export async function repairArticleParent(token: string, slug: string, statusId: string) {
+  return (await request(`/api/admin/community-discussions/${encodeURIComponent(slug)}/sources/${encodeURIComponent(statusId)}/parent/repair`, token, parentResultSchema, {})).source;
+}
+export async function setArticleParent(token: string, slug: string, statusId: string, parentStatusId: string) {
+  return (await request(`/api/admin/community-discussions/${encodeURIComponent(slug)}/sources/${encodeURIComponent(statusId)}/parent`, token, parentResultSchema, { parentStatusId })).source;
+}

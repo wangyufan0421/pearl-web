@@ -130,7 +130,7 @@ export async function getLighterCandles(range: CandleRange, fetcher: Fetcher = f
       data: { source: "Lighter", symbol: "PRL-PERP", resolution: "1h", candles: [] },
       sourceKind: "fallback",
       fetchedAt: new Date(),
-      notice: "暂时无法读取 Lighter 的 PRL 永续 K 线。",
+      notice: "暂时无法读取 Lighter 的 PEARL 永续 K 线。",
     };
   } finally {
     window.clearTimeout(timeout);

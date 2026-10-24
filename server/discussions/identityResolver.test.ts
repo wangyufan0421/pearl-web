@@ -72,6 +72,6 @@ describe("Twitter241 author identity resolver", () => {
   it("enriches a new source with the verified author from tweet-v2", async () => {
     const fetch = async (input: string) => response(input.includes("tweet-v2") ? tweet({ rest_id: "42", core: { name: "Root", screen_name: "root" }, avatar: { image_url: "https://pbs.twimg.com/root.jpg" } }) : tweet());
     const source = await createTwitter241SourceFetcher({ apiKey: "test", fetch })(url);
-    expect(source).toMatchObject({ author: "Root", handle: "root", avatarUrl: "https://pbs.twimg.com/root.jpg" });
+    expect(source).toMatchObject({ authorUserId: "42", author: "Root", handle: "root", avatarUrl: "https://pbs.twimg.com/root.jpg" });
   });
 });

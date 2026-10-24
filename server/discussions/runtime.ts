@@ -35,6 +35,7 @@ export function createTwitter241SourceFetcher({ apiKey, fetch = globalThis.fetch
       const identity = await identityResolver!.resolve(source.url, null, payload);
       return identity.userId ? {
         ...extracted,
+        authorUserId: identity.userId,
         author: identity.author ?? extracted.author,
         handle: identity.handle ?? extracted.handle,
         avatarUrl: identity.avatarUrl ?? extracted.avatarUrl,
@@ -58,6 +59,8 @@ export function createLiveDiscussionHandlers(environment: Record<string, string 
     createDiscussion: (input) => live().createDiscussion(input),
     addSources: (slug, urls) => live().addSources(slug, urls),
     refreshSource: (slug, statusId) => live().refreshSource(slug, statusId),
+    repairSourceParent: (slug, statusId) => live().repairSourceParent(slug, statusId),
+    setSourceParent: (slug, statusId, parentStatusId) => live().setSourceParent(slug, statusId, parentStatusId),
     listPublishedDiscussions: () => live().listPublishedDiscussions(),
     getPublishedDiscussion: (slug) => live().getPublishedDiscussion(slug),
   };

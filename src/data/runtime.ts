@@ -1,5 +1,6 @@
 import { getActivity, getCoinAge, getHolders, getMined, getPoolHistory, getPools, getTxSizes } from "./chain";
 import { getLighterCandles, getMetricSeries, getNetworkSnapshot, type CandleRange } from "./prlstats";
+import { getPeerMarketCap, type PeerMarketCapAsset } from "./peerMarketCap";
 
 export const refreshInterval = {
   fast: 30_000,
@@ -7,18 +8,21 @@ export const refreshInterval = {
   slow: 15 * 60_000,
 } as const;
 
-type CacheEntry = { loadedAt: number; promise: Promise<unknown> };
+type CacheEntry = { loadedAt: number; promise: Promise<unknown>; ttl: number };
 
 export function createRequestCache(now: () => number = Date.now) {
   const entries = new Map<string, CacheEntry>();
 
   return {
-    get<T>(key: string, ttl: number, loader: () => Promise<T>, force = false): Promise<T> {
+    get<T>(key: string, ttl: number, loader: () => Promise<T>, force = false, fallbackTtl = ttl): Promise<T> {
       const cached = entries.get(key);
-      if (!force && cached && now() - cached.loadedAt < ttl) return cached.promise as Promise<T>;
+      if (!force && cached && now() - cached.loadedAt < cached.ttl) return cached.promise as Promise<T>;
 
       const promise = Promise.resolve().then(loader).then(async result => {
-        if (cached && result && typeof result === "object" && "sourceKind" in result && result.sourceKind === "fallback") {
+        if (result && typeof result === "object" && "sourceKind" in result && result.sourceKind === "fallback") {
+          const entry = entries.get(key);
+          if (entry?.promise === promise) entry.ttl = fallbackTtl;
+          if (!cached) return result;
           const previous = await cached.promise.catch(() => null);
           if (previous && typeof previous === "object" && "sourceKind" in previous && previous.sourceKind === "live") {
             return { ...previous, stale: true, notice: "当前显示上次成功保存的数据，后台仍在尝试更新。" } as T;
@@ -26,7 +30,7 @@ export function createRequestCache(now: () => number = Date.now) {
         }
         return result;
       });
-      entries.set(key, { loadedAt: now(), promise });
+      entries.set(key, { loadedAt: now(), promise, ttl });
       void promise.catch(() => {
         if (entries.get(key)?.promise === promise) entries.delete(key);
       });
@@ -58,6 +62,14 @@ export function loadNetworkSnapshot(force = false) {
 
 export function loadMetricSeries(metric: string, force = false) {
   return cache.get(`metric:${metric}`, refreshInterval.fast, () => getMetricSeries(metric), force);
+}
+
+export function loadComparisonSeries(metric: string, force = false) {
+  return cache.get(`comparison:${metric}`, refreshInterval.slow, () => getMetricSeries(metric), force, refreshInterval.fast);
+}
+
+export function loadPeerMarketCap(asset: PeerMarketCapAsset, force = false) {
+  return cache.get(`peer-mcap:${asset}`, refreshInterval.slow, () => getPeerMarketCap(asset), force, refreshInterval.fast);
 }
 
 export function loadLighterCandles(range: CandleRange, force = false) {

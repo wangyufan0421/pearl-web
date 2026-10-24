@@ -8,6 +8,8 @@ import type { NetworkSnapshot } from "./data/schema";
 import { formatBlockDeviation, formatHashrate, formatUsd } from "./lib/format";
 import ChainPage from "./ChainPage";
 import ValuationPage from "./ValuationPage";
+import PearlVsBitcoinPage from "./PearlVsBitcoinPage";
+import { OverviewMarketCapSection } from "./OverviewMarketCapSection";
 import ArchiveHomePage from "./ArchiveHomePage";
 import CoreMechanismPage from "./CoreMechanismPage";
 import WhitepaperPage from "./WhitepaperPage";
@@ -68,7 +70,7 @@ export function CandlestickChart({ candles, zoom }: { candles: CandleSeries["can
     return Math.max(0, Math.min(visibleCandles.length - 1, Math.floor(((svgX - chart.left) / chart.plotWidth) * visibleCandles.length)));
   };
   return <div className="chart-interaction" data-testid="candlestick-interaction">
-    <svg className="candlestick-chart" viewBox={`0 0 ${chart.width} ${chart.height}`} role="img" aria-label={t("Lighter PRL 永续 K 线图")} onMouseMove={(event) => setHoverIndex(pointerToIndex(event.clientX, event.currentTarget.getBoundingClientRect()))} onMouseLeave={() => setHoverIndex(null)}>
+    <svg className="candlestick-chart" viewBox={`0 0 ${chart.width} ${chart.height}`} role="img" aria-label={t("Lighter PEARL 永续 K 线图")} onMouseMove={(event) => setHoverIndex(pointerToIndex(event.clientX, event.currentTarget.getBoundingClientRect()))} onMouseLeave={() => setHoverIndex(null)}>
     <defs><clipPath id="candle-clip"><rect x={chart.left} y={chart.top} width={chart.plotWidth} height={chart.plotHeight} /></clipPath></defs>
     <g className="chart-grid">{chart.yTicks.map((value) => <g key={value}><line x1={chart.left} x2={chart.left + chart.plotWidth} y1={chart.priceY(value)} y2={chart.priceY(value)} /><text x={chart.left + chart.plotWidth + 11} y={chart.priceY(value) + 4}>${t(value.toFixed(2))}</text></g>)}</g>
     <g className="chart-axis">{chart.xTicks.map((index) => <text key={index} x={chart.x(index)} y={chart.height - 8} textAnchor="middle">{t(formatDate(visibleCandles[index].timestamp))}</text>)}</g>
@@ -141,38 +143,40 @@ function OverviewPage() {
     <SiteHeader />
 
     <section className="hero" id="overview">
-      <DataStatusSummary items={[{ label: "网络概览", result: network }, { label: "PRL 市场参考价", result: price }, ...liveMetricIds.map(id => ({ label: metricLabels[id], result: metrics[id] })), { label: "Lighter · PRL 永续", result: candles }]} />
+      <DataStatusSummary items={[{ label: "网络概览", result: network }, { label: "PEARL 市场参考价", result: price }, ...liveMetricIds.map(id => ({ label: metricLabels[id], result: metrics[id] })), { label: "Lighter · PEARL 永续", result: candles }]} />
       <div className="overview-dashboard">
         <article className="feature-panel overview-market-panel" data-testid="overview-market-panel">
-          <div className="panel-kicker"><span>{t("Lighter · PRL 永续")}</span><div className="chart-controls"><div className="range-tabs">{(["7D", "30D"] as Range[]).map((item) => <button className={range === item ? "active" : ""} onClick={() => setRange(item)} key={item}>{t(item)}</button>)}</div><div className="zoom-controls" aria-label={t("图表缩放")}><button type="button" aria-label={t("缩小图表")} disabled={zoom <= 1} onClick={() => setZoom((value) => Math.max(1, value / 2))}>−</button><span>{t(zoom)}×</span><button type="button" aria-label={t("放大图表")} disabled={zoom >= 4} onClick={() => setZoom((value) => Math.min(4, value * 2))}>+</button></div></div></div>
-          <div className="price-readout">{t(lastCandle === undefined ? "—" : formatUsd(lastCandle.close))}<span> / PRL</span></div>
+          <div className="panel-kicker"><span>{t("Lighter · PEARL 永续")}</span><div className="chart-controls"><div className="range-tabs">{(["7D", "30D"] as Range[]).map((item) => <button className={range === item ? "active" : ""} onClick={() => setRange(item)} key={item}>{t(item)}</button>)}</div><div className="zoom-controls" aria-label={t("图表缩放")}><button type="button" aria-label={t("缩小图表")} disabled={zoom <= 1} onClick={() => setZoom((value) => Math.max(1, value / 2))}>−</button><span>{t(zoom)}×</span><button type="button" aria-label={t("放大图表")} disabled={zoom >= 4} onClick={() => setZoom((value) => Math.min(4, value * 2))}>+</button></div></div></div>
+          <div className="price-readout">{t(lastCandle === undefined ? "—" : formatUsd(lastCandle.close))}<span> / PEARL</span></div>
           <CandlestickChart candles={candles?.data.candles ?? []} zoom={zoom} />
           <DataFreshness result={candles} />
-          <p className="fineprint">{t("单一数据源：Lighter PRL 永续合约 · 1 小时 OHLC K 线 · 悬停查看时间与 OHLC · 右侧为 USD 价格坐标。")}</p>
+          <p className="fineprint">{t("单一数据源：Lighter PEARL 永续合约 · 1 小时 OHLC K 线 · 悬停查看时间与 OHLC · 右侧为 USD 价格坐标。")}</p>
         </article>
         <div className="hero-metrics">
           <MetricCard label={t("网络算力")} value={t(snapshot ? formatHashrate(snapshot.hashrateHs) : "—")} detail={t("由当前难度与链上出块推导")} kind={sourceKind} tone="blue" />
           <MetricCard label={t("网络难度")} value={t(snapshot ? snapshot.difficulty.toLocaleString(formatLocale(), { maximumFractionDigits: 0 }) : "—")} detail={t(snapshot ? `区块高度 ${snapshot.height.toLocaleString(formatLocale())}` : "等待网络快照")} kind={sourceKind} />
           <MetricCard label={t("平均出块")} value={t(snapshot ? `${snapshot.avgBlockTimeSeconds.toFixed(0)}s` : "—")} detail={t(blockDetail)} kind={sourceKind} />
-          <MetricCard label={t("供应进度")} value={t(snapshot ? `${snapshot.supplyPercent.toFixed(2)}%` : "—")} detail={t(snapshot ? `${(snapshot.supplyPrl / 1e6).toFixed(1)}M PRL 已发行` : "等待网络快照")} kind={sourceKind} />
-          <MetricCard label={t("每日排放")} value={t(snapshot ? `${(snapshot.emissionPrlDay / 1e6).toFixed(2)}M PRL` : "—")} detail={t("当前区块补贴推导")} kind={sourceKind}/>
-          <MetricCard label={t("全网全成本")} value={t(allInCost === undefined ? "读取中" : formatUsd(allInCost))} detail={t("模型化网络混合成本 · 每 PRL")} kind={metricKind("cost_allin")} />
+          <MetricCard label={t("供应进度")} value={t(snapshot ? `${snapshot.supplyPercent.toFixed(2)}%` : "—")} detail={t(snapshot ? `${(snapshot.supplyPrl / 1e6).toFixed(1)}M PEARL 已发行` : "等待网络快照")} kind={sourceKind} />
+          <MetricCard label={t("每日排放")} value={t(snapshot ? `${(snapshot.emissionPrlDay / 1e6).toFixed(2)}M PEARL` : "—")} detail={t("当前区块补贴推导")} kind={sourceKind}/>
+          <MetricCard label={t("全网全成本")} value={t(allInCost === undefined ? "读取中" : formatUsd(allInCost))} detail={t("模型化网络混合成本 · 每 PEARL")} kind={metricKind("cost_allin")} />
         </div>
       </div>
     </section>
 
-    <section className="section band-line" id="chain"><SectionHeader eyebrow="02 / CHAIN" title={t("链上实况")} description={t("交易、转账与持仓已读取公开序列；进入子页可查看矿池、活跃度、TX Size 与 Holders 的完整数据。")} />
-      <div className="status-grid"><article><span>{t("链上交易（24h）")}</span><strong>{t(formatCount(txs))}</strong><p><i className={`status-dot ${metricKind("txs")}`} />{t("非 coinbase 交易笔数")}</p></article><article><span>{t("链上转账额（24h）")}</span><strong>{t(onchainVolume === undefined ? "读取中" : `${(onchainVolume / 1e6).toFixed(2)}M PRL`)}</strong><p><i className={`status-dot ${metricKind("onchain_volume")}`} />{t("非 coinbase 输出总额")}</p></article><article><span>{t("活跃持仓地址")}</span><strong>{t(formatCount(fundedAddresses))}</strong><p><i className={`status-dot ${metricKind("funded_addresses")}`} />{t("余额超过 0.01 PRL 的地址")}</p></article><article><span>{t("前十地址占比")}</span><strong>{t(formatMetricPercent(top10Share))}</strong><p><i className={`status-dot ${metricKind("top10_share")}`} />{t("可验证的地址层集中度")}</p></article></div>
+    <OverviewMarketCapSection />
+
+    <section className="section band-line" id="chain"><SectionHeader eyebrow="03 / CHAIN" title={t("链上实况")} description={t("交易、转账与持仓已读取公开序列；进入子页可查看矿池、活跃度、TX Size 与 Holders 的完整数据。")} />
+      <div className="status-grid"><article><span>{t("链上交易（24h）")}</span><strong>{t(formatCount(txs))}</strong><p><i className={`status-dot ${metricKind("txs")}`} />{t("非 coinbase 交易笔数")}</p></article><article><span>{t("链上转账额（24h）")}</span><strong>{t(onchainVolume === undefined ? "读取中" : `${(onchainVolume / 1e6).toFixed(2)}M PEARL`)}</strong><p><i className={`status-dot ${metricKind("onchain_volume")}`} />{t("非 coinbase 输出总额")}</p></article><article><span>{t("活跃持仓地址")}</span><strong>{t(formatCount(fundedAddresses))}</strong><p><i className={`status-dot ${metricKind("funded_addresses")}`} />{t("余额超过 0.01 PEARL 的地址")}</p></article><article><span>{t("前十地址占比")}</span><strong>{t(formatMetricPercent(top10Share))}</strong><p><i className={`status-dot ${metricKind("top10_share")}`} />{t("可验证的地址层集中度")}</p></article></div>
       <a className="chain-page-link" href={localizeHref("/chain")}>{t("查看全部链上数据 ")}<span>→</span></a>
     </section>
 
-    <section className="section" id="valuation"><SectionHeader eyebrow="03 / DATA" title={t("PRL 数据")} description={t("让价格回到供应、网络和对照口径之中，而不是只看一个报价。")} />
-      <div className="valuation-grid"><MetricCard label={t("PRL 市场参考价")} value={t(lastPrice === undefined ? "读取中" : formatUsd(lastPrice))} detail={t("prlstats / CoinGecko 聚合参考")} kind={price?.sourceKind ?? "fallback"} tone="rose"/><MetricCard label={t("FDV")} value={t(fdv === undefined ? "读取中" : formatUsd(fdv))} detail={t("参考价 × 21 亿 PRL 最大供应量")} kind={price?.sourceKind ?? "fallback"}/><MetricCard label={t("FDV / BTC")} value={t(formatMetricPercent(fdvVsBtc, 3))} detail={t("Pearl 完全稀释估值占 Bitcoin 的比例")} kind={metricKind("fdv_vs_btc")} /></div>
+    <section className="section" id="valuation"><SectionHeader eyebrow="04 / DATA" title={t("PEARL 数据")} description={t("让价格回到供应、网络和对照口径之中，而不是只看一个报价。")} />
+      <div className="valuation-grid"><MetricCard label={t("PEARL 市场参考价")} value={t(lastPrice === undefined ? "读取中" : formatUsd(lastPrice))} detail={t("prlstats / CoinGecko 聚合参考")} kind={price?.sourceKind ?? "fallback"} tone="rose"/><MetricCard label={t("FDV")} value={t(fdv === undefined ? "读取中" : formatUsd(fdv))} detail={t("参考价 × 21 亿 PEARL 最大供应量")} kind={price?.sourceKind ?? "fallback"}/><MetricCard label={t("FDV / BTC")} value={t(formatMetricPercent(fdvVsBtc, 3))} detail={t("Pearl 完全稀释估值占 Bitcoin 的比例")} kind={metricKind("fdv_vs_btc")} /></div>
       <a className="chain-page-link" href={localizeHref("/valuation")}>{t("查看全部数据汇总 ")}<span>→</span></a>
     </section>
 
-    <section className="section band-pearl" id="ai"><SectionHeader eyebrow="04 / AI CROSSOVER" title={t("AI 交叉")} description={t("Pearl 的价值不只在出块，也在于计算如何与真实推理负载相遇。")} />
-      <div className="ai-layout"><article><p className="label-line">{t("推理并行成本")}</p><h3>{t(inferenceCost === undefined ? "读取中" : `${formatUsd(inferenceCost)} / PRL`)}</h3><p>{t("一张正在承载推理负载的卡并行挖矿时，按被挤占的推理收入与新增电力计入的模型成本。此项是模型估算，非市场报价。")}</p><span className="tag"><i className={`status-dot ${metricKind("marginal_cost")}`} />{t("prlstats 模型序列")}</span></article><article><p className="label-line">{t("挖矿 / 推理收入交点")}</p><h3>{t(formatMetricPercent(crossover, 1))}</h3><p>{t("每 GPU 小时挖矿收入相对于 H200 按需推理租赁价格的比例；越接近 100%，纯挖矿与出租算力的收入越接近。")}</p><span className="tag"><i className={`status-dot ${metricKind("crossover")}`} />{t("公开模型序列 · PRL/BTC ")}{t(prlBtc === undefined ? "读取中" : `${formatCount(prlBtc)} sats`)}</span></article></div>
+    <section className="section band-pearl" id="ai"><SectionHeader eyebrow="05 / AI CROSSOVER" title={t("AI 交叉")} description={t("Pearl 的价值不只在出块，也在于计算如何与真实推理负载相遇。")} />
+      <div className="ai-layout"><article><p className="label-line">{t("推理并行成本")}</p><h3>{t(inferenceCost === undefined ? "读取中" : `${formatUsd(inferenceCost)} / PEARL`)}</h3><p>{t("一张正在承载推理负载的卡并行挖矿时，按被挤占的推理收入与新增电力计入的模型成本。此项是模型估算，非市场报价。")}</p><span className="tag"><i className={`status-dot ${metricKind("marginal_cost")}`} />{t("prlstats 模型序列")}</span></article><article><p className="label-line">{t("挖矿 / 推理收入交点")}</p><h3>{t(formatMetricPercent(crossover, 1))}</h3><p>{t("每 GPU 小时挖矿收入相对于 H200 按需推理租赁价格的比例；越接近 100%，纯挖矿与出租算力的收入越接近。")}</p><span className="tag"><i className={`status-dot ${metricKind("crossover")}`} />{t("公开模型序列 · PEARL/BTC ")}{t(prlBtc === undefined ? "读取中" : `${formatCount(prlBtc)} sats`)}</span></article></div>
     </section>
 
   </main>;
@@ -198,6 +202,7 @@ function AppContent() {
     };
   }, []);
   if (pathname === "/overview") return <OverviewPage />;
+  if (pathname === "/pearl-vs-bitcoin") return <PearlVsBitcoinPage />;
   if (pathname === "/chain") return <ChainPage />;
   if (pathname === "/valuation") return <ValuationPage />;
   if (pathname === "/admin/community-discussions" || pathname.startsWith("/admin/community-discussions/")) return <CommunityAdminPage route={pathname} />;
