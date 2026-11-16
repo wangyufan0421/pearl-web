@@ -18,6 +18,9 @@ describe("cloud HTTP application", () => {
     const market = await fetch(`${origin}/api/prlstats/api/network`);
     expect(await market.json()).toEqual({ height: 42 });
     expect(market.headers.get("x-data-fetched-at")).toBeTruthy();
+    const insight = await fetch(`${origin}/api/market/insights?dataset=kairos-live`);
+    expect(insight.headers.get("content-type")).toContain("application/json");
+    expect(await insight.json()).toEqual({ height: 42 });
     expect(await (await fetch(`${origin}/en/archive/community-discussion`)).text()).toContain("Pearl test");
     expect((await fetch(`${origin}/api/admin/community-discussions`)).status).toBe(401);
     expect(await (await fetch(`${origin}/api/admin/community-discussions`, { headers: { authorization: "Bearer test-token" } })).json()).toEqual({ authorized: true });

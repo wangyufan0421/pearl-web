@@ -7,9 +7,12 @@ import { loadLighterCandles, loadMetricSeries, loadNetworkSnapshot, startDataRef
 import type { NetworkSnapshot } from "./data/schema";
 import { formatBlockDeviation, formatHashrate, formatUsd } from "./lib/format";
 import ChainPage from "./ChainPage";
+import EconomicsPage from "./EconomicsPage";
 import ValuationPage from "./ValuationPage";
 import PearlVsBitcoinPage from "./PearlVsBitcoinPage";
 import { OverviewMarketCapSection } from "./OverviewMarketCapSection";
+import { OverviewLiveChain } from "./OverviewLiveChain";
+import { OverviewFlowCharts } from "./OverviewFlowCharts";
 import ArchiveHomePage from "./ArchiveHomePage";
 import CoreMechanismPage from "./CoreMechanismPage";
 import WhitepaperPage from "./WhitepaperPage";
@@ -166,6 +169,8 @@ function OverviewPage() {
     <OverviewMarketCapSection />
 
     <section className="section band-line" id="chain"><SectionHeader eyebrow="03 / CHAIN" title={t("链上实况")} description={t("交易、转账与持仓已读取公开序列；进入子页可查看矿池、活跃度、TX Size 与 Holders 的完整数据。")} />
+      <OverviewLiveChain />
+      <OverviewFlowCharts />
       <div className="status-grid"><article><span>{t("链上交易（24h）")}</span><strong>{t(formatCount(txs))}</strong><p><i className={`status-dot ${metricKind("txs")}`} />{t("非 coinbase 交易笔数")}</p></article><article><span>{t("链上转账额（24h）")}</span><strong>{t(onchainVolume === undefined ? "读取中" : `${(onchainVolume / 1e6).toFixed(2)}M PEARL`)}</strong><p><i className={`status-dot ${metricKind("onchain_volume")}`} />{t("非 coinbase 输出总额")}</p></article><article><span>{t("活跃持仓地址")}</span><strong>{t(formatCount(fundedAddresses))}</strong><p><i className={`status-dot ${metricKind("funded_addresses")}`} />{t("余额超过 0.01 PEARL 的地址")}</p></article><article><span>{t("前十地址占比")}</span><strong>{t(formatMetricPercent(top10Share))}</strong><p><i className={`status-dot ${metricKind("top10_share")}`} />{t("可验证的地址层集中度")}</p></article></div>
       <a className="chain-page-link" href={localizeHref("/chain")}>{t("查看全部链上数据 ")}<span>→</span></a>
     </section>
@@ -204,6 +209,7 @@ function AppContent() {
   if (pathname === "/overview") return <OverviewPage />;
   if (pathname === "/pearl-vs-bitcoin") return <PearlVsBitcoinPage />;
   if (pathname === "/chain") return <ChainPage />;
+  if (pathname === "/economics") return <EconomicsPage />;
   if (pathname === "/valuation") return <ValuationPage />;
   if (pathname === "/admin/community-discussions" || pathname.startsWith("/admin/community-discussions/")) return <CommunityAdminPage route={pathname} />;
   if (pathname === "/archive/core-mechanism") return <CoreMechanismPage />;

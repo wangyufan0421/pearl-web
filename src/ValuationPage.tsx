@@ -8,6 +8,7 @@ import { loadMetricSeries, loadNetworkSnapshot, subscribeToDataUpdates } from ".
 import type { NetworkSnapshot } from "./data/schema";
 import { formatUsd } from "./lib/format";
 import { SUPPLY_CAP, SupplyHistoryChart } from "./SupplyHistoryChart";
+import { CostBasisPanel, MarketStructurePanel, PerpMarketPanel } from "./ValuationInsights";
 
 const metricIds = ["price", "prl_btc", "volume", "cost_allin", "supply", "mcap_vs_btc", "fdv_vs_btc", "inflation", "miner_revenue"] as const;
 type MetricId = typeof metricIds[number];
@@ -164,6 +165,7 @@ export default function ValuationPage() {
           <p>{t("选择不同指标即可切换历史序列。图表为单值时间序列，并非 OHLC K 线。")}</p>
         </div>
         <div className="valuation-card-grid price-cards"><DataCard label={t("PEARL 参考价")} value={t(valueOrState(metric("price"), formatUsd))} detail={t("公开价格序列 · USD / PEARL")} kind={sourceKind(metric("price"))} tone="rose" /><DataCard label={t("PEARL / BTC")} value={t(valueOrState(metric("prl_btc"), formatSats))} detail={t("一枚 PEARL 折算的 BTC 价值")} kind={sourceKind(metric("prl_btc"))} /><DataCard label={t("24h 成交量")} value={t(valueOrState(metric("volume"), formatUsd))} detail={t("公开汇总成交量 · USD")} kind={sourceKind(metric("volume"))} /></div>
+        <PerpMarketPanel />
       </section>
 
       <section className="valuation-module">
@@ -177,6 +179,8 @@ export default function ValuationPage() {
         <div className="valuation-card-grid supply-cards"><DataCard label={t("流通供应量")} value={t(supplyCardValue)} detail={t("prlstats 流通供应序列")} kind={sourceKind(metric("supply"))} /><DataCard label={t("供应进度")} value={t(progress === undefined ? "读取中" : `${progress.percent.toFixed(2)}%`)} detail={t(progress === undefined ? "公开链上快照" : `${formatPrl(progress.issued)} 已发行`)} kind={progressKind} /><DataCard label={t("年化通胀率")} value={t(valueOrState(metric("inflation"), (value) => formatPercent(value, 2)))} detail={t("按当前发行节奏年化")} kind={sourceKind(metric("inflation"))} /><DataCard label={t("每日排放")} value={t(network === null ? "读取中" : formatPrl(network.data.emissionPrlDay))} detail={t("公开网络快照")} kind={network?.sourceKind ?? "fallback"} /><DataCard label={t("每日发行价值")} value={t(issuanceValue === undefined ? network === null || metric("price") === undefined ? "读取中" : "暂未提供" : formatUsd(issuanceValue))} detail={t("参考价 × 当前日排放")} kind={sourceKind(metric("price"))} tone="yellow" /><DataCard label={t("矿工收入 / 日")} value={t(valueOrState(metric("miner_revenue"), formatUsd))} detail={t("prlstats 矿工收入序列")} kind={sourceKind(metric("miner_revenue"))} /></div>
         <SupplyHistoryChart result={metric("supply")} />
       </section>
+      <section className="valuation-module"><ModuleHeader eyebrow="04 / COST BASIS" title={language === "zh" ? "持币成本" : "Cost basis"} source={language === "zh" ? "链上移动价格模型" : "Onchain last-move price model"} /><CostBasisPanel /></section>
+      <section className="valuation-module"><ModuleHeader eyebrow="05 / MARKET STRUCTURE" title={language === "zh" ? "市场结构" : "Market structure"} source={language === "zh" ? "永续订单簿与场所报告成交量" : "Perp order book and venue-reported volume"} /><MarketStructurePanel /></section>
     </div>
   </main>;
 }

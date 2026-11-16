@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { insightDatasets } from "./insightDatasets.js";
 
 const n = z.number().finite();
 const point = z.object({ t: n, v: n });
@@ -18,13 +19,14 @@ export const comparisonMetricIds = ["prl_energy", "btc_energy", "energy_vs_btc",
 export const peerMarketCapAssets = ["btc", "bch", "fil", "zec"] as const;
 const comparisonMetricUnits = { prl_energy: "MW", btc_energy: "MW", energy_vs_btc: "%", prl_machines: "GPUs", btc_machines: "ASICs", prl_capex: "USD", btc_capex: "USD", prl_issuance_usd: "USD/day", btc_issuance_usd: "USD/day" } satisfies Record<(typeof comparisonMetricIds)[number], string>;
 export const activityIds = "txs,onchain_volume,velocity,tx_fees,tx_fees_usd,new_addresses,funded_addresses,supply";
-export type Dataset = { key: string; interval: number; url(now: number): string; validate(payload: unknown): void };
+export type Dataset = { key: string; interval: number; timeoutMs?: number; url(now: number): string; validate(payload: unknown): void };
 const fast = 30_000; const medium = 300_000; const slow = 900_000;
 const daily = 6 * 60 * 60_000;
 function prl(key: string, interval: number, path: string, schema: z.ZodType): Dataset {
   return { key, interval, url: () => `https://prlstats.com${path}`, validate: payload => { schema.parse(payload); } };
 }
 export const datasets: Dataset[] = [
+  ...insightDatasets,
   prl("network", fast, "/api/network", network),
   ...metricIds.map(id => prl(`metric:${id}`, fast, `/api/series?m=${id}`, series.refine(rows => rows.length === 1 && rows[0].meta.id === id, "Metric identity mismatch"))),
   ...comparisonMetricIds.map(id => prl(`metric:${id}`, slow, `/api/series?m=${id}`, series.refine(rows => rows.length === 1 && rows[0].meta.id === id && rows[0].meta.unit === comparisonMetricUnits[id], "Comparison metric identity or unit mismatch"))),
@@ -67,7 +69,8 @@ export const datasets: Dataset[] = [
 export function requestedDataset(url: URL): Dataset | undefined {
   const path = url.pathname;
   let key: string | undefined;
-  if (path === "/api/market/candles") key = `candles:${url.searchParams.get("range")}`;
+  if (path === "/api/market/insights") key = `insight:${url.searchParams.get("dataset")}`;
+  else if (path === "/api/market/candles") key = `candles:${url.searchParams.get("range")}`;
   else if (path === "/api/market/market-cap") key = `peer-mcap:${url.searchParams.get("asset")}`;
   else if (path === "/api/prlstats/api/series") {
     const metric = url.searchParams.get("m");

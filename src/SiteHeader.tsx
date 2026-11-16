@@ -1,15 +1,17 @@
 import { ArchiveNavigation } from "./ArchiveNavigation";
+import { PageContents } from "./PageContents";
 import { stripLanguage, useLanguage } from "./i18n/Language";
 
 export function SiteHeader() {
   const { language, t, href, switchLanguage } = useLanguage();
   const route = stripLanguage(window.location.pathname);
   const pathname = route === "/" && window.location.hash === "#overview" ? "/overview" : route;
-  return <header className="topbar">
+  return <><header className="topbar">
     <a className="brand" href={href("/")}>Pearl <span>{t("中文社区")}</span></a>
     <nav aria-label={t("主导航")}>
       <a href={href("/overview")} aria-current={pathname === "/overview" ? "page" : undefined}>{t("数据概览")}</a>
       <a href={href("/pearl-vs-bitcoin")} aria-current={pathname === "/pearl-vs-bitcoin" ? "page" : undefined}>Pearl vs Bitcoin</a>
+      <a href={href("/economics")} aria-current={pathname === "/economics" ? "page" : undefined}>{language === "zh" ? "经济模型" : "Economics"}</a>
       <a href={href("/chain")} aria-current={pathname === "/chain" ? "page" : undefined}>{t("链上数据")}</a>
       <a href={href("/valuation")} aria-current={pathname === "/valuation" ? "page" : undefined}>{t("数据汇总")}</a>
       <ArchiveNavigation current={pathname === "/" || pathname.startsWith("/archive")} />
@@ -19,5 +21,5 @@ export function SiteHeader() {
       <span aria-hidden="true">/</span>
       <button type="button" lang="zh-CN" aria-label="中文" aria-pressed={language === "zh"} onClick={() => switchLanguage("zh")}>ZH</button>
     </div>
-  </header>;
+  </header><PageContents /></>;
 }

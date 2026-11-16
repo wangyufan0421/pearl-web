@@ -33,9 +33,9 @@ describe("ChainPage", () => {
     expect(screen.getByRole("heading", { name: "矿池 Pools" })).not.toBeNull();
     expect(screen.getByRole("heading", { name: "链上活跃度 Activity" })).not.toBeNull();
     expect(screen.getByRole("heading", { name: "交易规模 TX Size" })).not.toBeNull();
-    expect(screen.getByRole("heading", { name: "持币地址 Holders" })).not.toBeNull();
+    expect(screen.queryByRole("heading", { name: "持币地址 Holders" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "PEARL大户持币统计" })).not.toBeNull();
     expect(screen.getByText(/Solo \/ unknown/)).not.toBeNull();
-    expect(screen.getByText(/移动不等于卖出/)).not.toBeNull();
     expect(screen.queryByText(/prlstats 节点快照/)).toBeNull();
     expect(screen.queryByText(/全节点 UTXO/)).toBeNull();
   });

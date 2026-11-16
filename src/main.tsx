@@ -16,6 +16,7 @@ import "./styles/navigation.css";
 import "./styles/community.css";
 import "./styles/community-admin.css";
 import "./styles/data-status.css";
+import "./styles/insights.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

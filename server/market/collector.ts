@@ -20,7 +20,7 @@ export function createCollector({ store, jobs = datasets, fetcher = fetch, now =
       await acquire();
       if (stopped) { release(); return; }
       const controller = new AbortController(); controllers.add(controller);
-      const timeout = setTimeout(() => controller.abort(), 12_000);
+      const timeout = setTimeout(() => controller.abort(), job.timeoutMs ?? 12_000);
       try {
         const response = await fetcher(job.url(now()), { signal: controller.signal, headers: { accept: "application/json" } });
         if (!response.ok) throw new Error("Upstream unavailable");

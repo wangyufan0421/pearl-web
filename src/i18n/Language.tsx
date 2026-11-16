@@ -36,7 +36,7 @@ function initialLanguage(): Language {
 }
 
 const pageTitles: Record<string, string> = {
-  "/": "Pearl 是什么", "/archive": "Pearl 是什么", "/overview": "数据概览", "/pearl-vs-bitcoin": "Pearl vs Bitcoin", "/chain": "链上数据", "/valuation": "PEARL 数据汇总",
+  "/": "Pearl 是什么", "/archive": "Pearl 是什么", "/overview": "数据概览", "/pearl-vs-bitcoin": "Pearl vs Bitcoin", "/economics": "经济模型", "/chain": "链上数据", "/valuation": "PEARL 数据汇总",
   "/archive/core-mechanism": "核心机制", "/archive/whitepaper": "Pearl 白皮书", "/archive/articles": "Pearl相关文章", "/archive/people": "Pearl人物与关系",
   "/archive/community-discussion": "Pearl社区讨论",
   "/admin/community-discussions": "社区讨论管理",
